@@ -1,0 +1,40 @@
+# corpus
+embeddings/
+eval_datasets/
+
+# OS files
+.DS_Store
+Thumbs.db
+__MACOSX/
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.*
+
+# Dependency folders
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+build/
+out/
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+
+# cache
+__pycache__/
+*.pyc
+hf_cache/
+models/
