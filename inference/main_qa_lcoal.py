@@ -10,9 +10,8 @@ import re
 from transformers import AutoTokenizer, AutoModel
 import faiss
 import pickle as pkl
-
-ID_KEYS = ("question_id", "id", "_id", "qid", "uid")
-
+import os
+import json
 
 # Import other retrieval/embedding code as needed
 def replace_placeholders(question_text: str, answers_so_far: Dict[str, str]) -> str:
@@ -32,9 +31,15 @@ def retrieve_context(query: str, cpu_index, corpus: List[str], embedding_tokeniz
     """
     Retrieves the top-k context passages from the vector store for a given query.
     """
+    # a PyTorch Tensor
     query_embedding = embed_text(query, embedding_tokenizer, embedding_model, embedding_model_name)
-    ## error: input not numpy
-    dev_D, dev_I = cpu_index.search(query_embedding.numpy().astype(np.float32), top_k)
+    
+    # Convert the Tensor to a NumPy float32 array
+    query_embedding_np = query_embedding.numpy().astype(np.float32)
+    
+    # Pass the NumPy array to FAISS
+    dev_D, dev_I = cpu_index.search(query_embedding_np, top_k)
+    
     passages = [corpus[r] for r in dev_I[0]]
     return passages
 
@@ -47,13 +52,10 @@ def load_embedding(dataset: str, embedding_model: str):
     """
     sentences = []
     passage_embeddings = []
-    if dataset in ["m", "musique"]:
-        dataset = "musique"
-    elif dataset in ["2wiki","2wiki_origin", "2wikimultihopqa"]:
-        dataset = "2wikimultihopqa"
     
     # Load sentences from corpus file
-    with open(f"embeddings/{dataset}/corpus.tsv", "r") as f:
+    
+    with open(f"embeddings/hotpotqa/corpus.tsv", "r") as f:
         reader = csv.reader(f, delimiter='\t')
         for lines in tqdm(reader):
             if lines[0] == "id":
@@ -62,10 +64,9 @@ def load_embedding(dataset: str, embedding_model: str):
             sentences.append(text)
     
     # Load embeddings in 4 shards and concatenate them
-    # 2wikimultihopqa
-    # musique
+    # shared corpus of hotpotqa path
     for i in trange(4): 
-        path = f"embeddings/{dataset}/e5-large/embeddings-{i}-of-4.pkl"
+        path = f"embeddings/hotpotqa/{embedding_model}/embeddings-{i}-of-4.pkl"
         with open(path, "rb") as f:
             passage_embedding = pkl.load(f)
             passage_embeddings.append(passage_embedding)
@@ -89,52 +90,6 @@ def load_data(dataset: str, expname: str, save_dir: str) -> List[Dict]:
     print(f"Loaded {len(questions)} examples from {dataset}!")
     print("========")
     return questions
-
-
-def get_source_id(example: Dict):
-    for key in ID_KEYS:
-        if key in example and example[key] not in (None, ""):
-            return example[key]
-    return None
-
-
-def load_source_ids(dataset: str) -> List:
-    if "-" in dataset:
-        dataset = dataset.split("-")[0]
-
-    path = f"eval_datasets/{dataset}/test_subsampled.jsonl"
-    source_ids = []
-    try:
-        with open(path, "r") as f:
-            for index, line in enumerate(f):
-                if not line.strip():
-                    continue
-                source_id = get_source_id(json.loads(line))
-                source_ids.append(source_id if source_id is not None else index)
-    except FileNotFoundError:
-        print(f"Warning: source id file not found: {path}")
-    return source_ids
-
-
-def keep_source_ids(item: Dict, result_index: int, source_ids: List) -> Dict:
-    new_item = copy.deepcopy(item)
-    source_index = new_item.get("source_index", result_index)
-
-    try:
-        source_index_int = int(source_index)
-    except (TypeError, ValueError):
-        source_index_int = result_index
-
-    if "source_index" not in new_item:
-        new_item["source_index"] = source_index_int
-
-    if 0 <= source_index_int < len(source_ids):
-        source_id = source_ids[source_index_int]
-        current_id = new_item.get("question_id")
-        if current_id in (None, "", result_index, source_index_int, str(result_index), str(source_index_int)):
-            new_item["question_id"] = source_id
-
-    return new_item
 
 
 def build_index(dataset: str, embedding_model_name: str):
@@ -179,37 +134,80 @@ def zigzag_visit(lst: List) -> List:
     return result
 
 def answer_sub_claim(sub_q: str, context_passages: List[str], model, tokenizer, sampling_params) -> str:
-    """
-    Uses the LLM to answer a sub-question given the retrieved context.
-    The context passages are reordered in a zigzag manner before being concatenated.
-    """
     reordered_passages = zigzag_visit(context_passages)
     context_text = "\n\n".join(reordered_passages)
-    prompt = f"""You have the following context passages:
+    
+    raw_prompt = f"""You have the following context passages:
 {context_text}
 
 Please verify whether the claim '{sub_q}' is correct using the context as reference. 
 If no answer is found in the context, use your own knowledge.
 Please only output Yes or No and do not give any explanation."""
 
-    response = call_llm(prompt, model=model, tokenizer=tokenizer, sampling_params=sampling_params)
+    # JUST PASS THE RAW PROMPT! utils.py will handle the formatting.
+    response = call_llm(raw_prompt, model=model, tokenizer=tokenizer, sampling_params=sampling_params)
     return response.strip()
 
 def answer_sub_question(sub_q: str, context_passages: List[str], model, tokenizer, sampling_params) -> str:
-    """
-    Uses the LLM to answer a sub-question given the retrieved context.
-    The context passages are reordered in a zigzag manner before being concatenated.
-    """
     reordered_passages = zigzag_visit(context_passages)
     context_text = "\n\n".join(reordered_passages)
-    prompt = f"""You have the following context passages:
+    
+    raw_prompt = f"""You have the following context passages:
 {context_text}
 
 Please answer the question '{sub_q}' with a short span using the context as reference.
 If no answer is found in the context, use your own knowledge. Your answer needs to be as short as possible."""
-    response = call_llm(prompt, model=model, tokenizer=tokenizer, sampling_params=sampling_params)
+    
+    response = call_llm(raw_prompt, model=model, tokenizer=tokenizer, sampling_params=sampling_params)
     return response.strip()
 
+def generate_final_answer(original_question: str, sub_questions: Dict[str, str], sub_answers: Dict[str, str], model, tokenizer, sampling_params, dataset: str, passages: List[str] = None, add_passage: int = 1) -> str:
+    sub_answer_text = "\n".join([f"### {k}: {sub_questions[k]}, Answer for {k}: {v}" for k, v in sub_answers.items()])
+    
+#     if dataset in ["hover", "exfever"]:
+#         raw_prompt = f"""You are given some subquestions and their answers:
+# {sub_answer_text}
+
+# Please verify the correctness of the claim: '{original_question}' using the subquestions as reference. 
+# You must output ONLY "Yes" or "No" inside the tags. Do not explain.
+# Wrap your answer with <answer> and </answer> tags."""
+
+    
+    if add_passage:
+        passages_text = "\n\n".join(list(set(passages)))
+        raw_prompt = f"""You have the following passages:
+{passages_text}
+
+You are also given some subquestions and their answers:
+{sub_answer_text}
+
+Please answer the question '{original_question}' using the documents and subquestions as reference.
+CRITICAL INSTRUCTION: You are an extractive QA bot. You must extract ONLY the exact entity, name, date, or short phrase required. 
+DO NOT write a full sentence. DO NOT include conversational filler. DO NOT explain your reasoning inside the tags.
+
+Examples:
+Bad: <answer>The nationality of the person is American.</answer>
+Good: <answer>American</answer>
+Bad: <answer>Andrew Lloyd Webber wrote the music and Tim Rice wrote the lyrics.</answer>
+Good: <answer>Andrew Lloyd Webber and Tim Rice</answer>
+
+Wrap your extracted answer with <answer> and </answer> tags."""
+    else:
+        raw_prompt = f"""You are given some subquestions and their answers:
+    {sub_answer_text}
+
+    Please answer the question '{original_question}' using the subquestions as reference.
+    CRITICAL INSTRUCTION: You must extract ONLY the exact entity, name, date, or short phrase required. DO NOT write a full sentence.
+
+    Examples:
+    Bad: <answer>The nationality of the person is American.</answer>
+    Good: <answer>American</answer>
+
+    Wrap your extracted answer with <answer> and </answer> tags."""
+
+    # Pass the strict raw prompt
+    final = call_llm(raw_prompt, model=model, tokenizer=tokenizer, sampling_params=sampling_params)
+    return final.strip()
 
 def multi_turn_qa(question: str, sub_questions: List[Dict], cpu_index, corpus,
                   embedding_tokenizer, embedding_model, embedding_model_name: str,
@@ -226,7 +224,7 @@ def multi_turn_qa(question: str, sub_questions: List[Dict], cpu_index, corpus,
     answer_dict = {}
     passage_dict = {}
     all_passages = []
-    # Process each sub-question
+    # Process each sub-question in sequential way
     for subq_dict in sub_questions:
         q_label = subq_dict["label"]
         q_text = subq_dict["text"]
@@ -256,43 +254,6 @@ def multi_turn_qa(question: str, sub_questions: List[Dict], cpu_index, corpus,
     return final_answer, answer_dict, passage_dict
 
 
-def generate_final_answer(original_question: str, sub_questions: Dict[str, str], sub_answers: Dict[str, str], model, tokenizer, sampling_params, dataset: str, passages: List[str] = None, add_passage: int = 1) -> str:
-    """
-    Generates a final answer for the original question by summarizing sub-question answers.
-    """
-    sub_answer_text = "\n".join([f"### {k}: {sub_questions[k]}, Answer for {k}: {v}" for k, v in sub_answers.items()])
-    final_prompt = "a short span"
-
-    if dataset in ["hover", "exfever"]:
-        prompt = f"""You are given some subquestions and their answers:
-{sub_answer_text}
-
-Please verify the correctness of the claim: '{original_question}' using the subquestions as reference. Please provide a concise and clear reasoning followed by a concise conclusion. Your answer should be Yes or No only. 
-Wrap your answer with <answer> and </answer> tags."""
-
-    else:
-        if add_passage:
-            passages = "\n\n".join(list(set(passages)))
-            prompt = f"""You have the following passages:
-{passages}
-
-You are also given some subquestions and their answers:
-{sub_answer_text}
-
-Please answer the question '{original_question}' with {final_prompt} using the documents and subquestions as reference.
-Make sure your response is grounded in documents and provides clear reasoning followed by a concise conclusion. If no relevant information is found, use your own knowledge. 
-Wrap your answer with <answer> and </answer> tags."""
-        else:
-            prompt = f"""You are given some subquestions and their answers:
-{sub_answer_text}
-
-Please answer the question '{original_question}' with {final_prompt} using the subquestions as reference. Provides clear reasoning followed by a concise conclusion. If no relevant information is found, use your own knowledge. 
-Wrap your answer with <answer> and </answer> tags."""
-
-    final = call_llm(prompt, model=model, tokenizer=tokenizer, sampling_params=sampling_params)
-    return final.strip()
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--llm_model_path", type=str)
@@ -314,6 +275,7 @@ def main():
     # Build retrieval index as needed
     tokenizer = AutoTokenizer.from_pretrained(args.sentence_embedding_model, 
                                                 trust_remote_code=True)
+                                                
     embedding_model = AutoModel.from_pretrained(args.sentence_embedding_model, 
                                                 trust_remote_code=True).cuda()
     embedding_model.eval()
@@ -322,10 +284,21 @@ def main():
     
     llm_tokenizer = load_tokenizer(args.llm_tokenizer)
     sampling_params = make_sampling_params(args.temperature, args.top_p, max_tokens=512)
-    llm = init_llm(args.llm_model_path, args.tensor_parallel_size)
-    source_ids = load_source_ids(args.dataset)
+    # add tokenizer
+    llm = init_llm(args.llm_model_path,args.llm_tokenizer ,args.tensor_parallel_size)
+
     
     saved_examples = []
+    output_dir = f"{args.save_dir}/{args.dataset}/prompts_decompose_test_{args.expname}"
+    os.makedirs(output_dir, exist_ok=True)
+
+    output_path = (
+        f"{output_dir}/"
+        f"test_{args.sentence_embedding_model_save_name}_k{args.k}_passage{args.add_passage}.jsonl"
+    )
+
+    count = 0
+
     for index, item in enumerate(tqdm(questions)):
         try:
             final_answer, intermediate_answers, intermediate_passages = multi_turn_qa(
@@ -333,20 +306,25 @@ def main():
                 tokenizer, embedding_model, args.sentence_embedding_model_save_name,
                 llm, llm_tokenizer, sampling_params, args.dataset, args.add_passage, args.k
             )
-            new_item = keep_source_ids(item, index, source_ids)
+
+            new_item = copy.deepcopy(item)
             new_item.update({
                 "index": index,
                 "final_answer": final_answer,
                 "intermediate_answers": intermediate_answers,
-                "intermediate_passages": intermediate_passages
+                # "intermediate_passages": intermediate_passages
             })
-            saved_examples.append(new_item)
+
+            with open(output_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(new_item, ensure_ascii=False) + "\n")
+
+            count += 1
+
         except Exception as e:
             print(f"Error at {index}: {e}")
             continue
-    output_path = f"{args.save_dir}/{args.dataset}/prompts_decompose_test_{args.expname}/test_{args.sentence_embedding_model_save_name}_k{args.k}_passage{args.add_passage}.jsonl"
-    save_jsonl(saved_examples, output_path)
-    print(f"Saved {len(saved_examples)} results to {output_path}")
+
+    print(f"Saved {count} results to {output_path}")
 
 if __name__ == "__main__":
     main()

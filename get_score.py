@@ -3,101 +3,196 @@ import re
 import string
 from collections import Counter
 import argparse
+from pathlib import Path
+
 
 def normalize_answer(s):
-    """Lower text and remove punctuation, articles and extra whitespace."""
+    if s is None:
+        return ""
+
+    s = str(s)
+
     def remove_articles(text):
-        return re.sub(r'\b(a|an|the)\b', ' ', text)
+        return re.sub(r"\b(a|an|the)\b", " ", text)
 
     def white_space_fix(text):
-        return ' '.join(text.split())
+        return " ".join(text.split())
 
     def remove_punc(text):
         exclude = set(string.punctuation)
-        return ''.join(ch for ch in text if ch not in exclude)
+        return "".join(ch for ch in text if ch not in exclude)
 
     def lower(text):
         return text.lower()
 
     return white_space_fix(remove_articles(remove_punc(lower(s))))
 
-def f1_score(prediction, ground_truth):
-    """Calculates token-level F1 score."""
-    prediction_tokens = normalize_answer(prediction).split()
-    ground_truth_tokens = normalize_answer(ground_truth).split()
-    common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
+
+def prf_score(prediction, ground_truth):
+    """Return precision, recall, f1."""
+    pred_tokens = normalize_answer(prediction).split()
+    gt_tokens = normalize_answer(ground_truth).split()
+
+    if len(pred_tokens) == 0 and len(gt_tokens) == 0:
+        return 1.0, 1.0, 1.0
+    if len(pred_tokens) == 0 or len(gt_tokens) == 0:
+        return 0.0, 0.0, 0.0
+
+    common = Counter(pred_tokens) & Counter(gt_tokens)
     num_same = sum(common.values())
-    
+
     if num_same == 0:
-        return 0
-    
-    precision = 1.0 * num_same / len(prediction_tokens)
-    recall = 1.0 * num_same / len(ground_truth_tokens)
-    f1 = (2 * precision * recall) / (precision + recall)
-    return f1
+        return 0.0, 0.0, 0.0
+
+    precision = num_same / len(pred_tokens)
+    recall = num_same / len(gt_tokens)
+    f1 = 2 * precision * recall / (precision + recall)
+
+    return precision, recall, f1
+
 
 def exact_match_score(prediction, ground_truth):
-    """Checks if the normalized strings match exactly."""
-    return normalize_answer(prediction) == normalize_answer(ground_truth)
+    return float(normalize_answer(prediction) == normalize_answer(ground_truth))
+
 
 def accuracy_score(prediction, ground_truth):
-    """Checks if the normalized ground truth is contained within the prediction."""
-    return normalize_answer(ground_truth) in normalize_answer(prediction)
+    pred_norm = normalize_answer(prediction)
+    gt_norm = normalize_answer(ground_truth)
+    return float(gt_norm in pred_norm)
+
 
 def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
-    """Evaluates against all possible valid answers and takes the highest score."""
-    scores_for_ground_truths = []
-    for ground_truth in ground_truths:
-        score = metric_fn(prediction, ground_truth)
-        scores_for_ground_truths.append(score)
-    return max(scores_for_ground_truths)
+    return max(metric_fn(prediction, gt) for gt in ground_truths)
 
-def evaluate(file_path):
-    f1 = exact_match = accuracy = total = 0
-    print(f"Evaluating: {file_path}\n" + "-"*40)
-    
-    with open(file_path, 'r', encoding='utf-8') as f:
-        for line in f:
+
+def prf_max_over_ground_truths(prediction, ground_truths):
+    best = (0.0, 0.0, 0.0)
+    for gt in ground_truths:
+        p, r, f1 = prf_score(prediction, gt)
+        if f1 > best[2]:
+            best = (p, r, f1)
+    return best
+
+
+def extract_prediction(final_answer_raw):
+    if final_answer_raw is None:
+        return ""
+
+    final_answer_raw = str(final_answer_raw)
+    match = re.search(r"<answer>(.*?)</answer>", final_answer_raw, re.IGNORECASE | re.DOTALL)
+
+    if match:
+        return match.group(1).strip()
+    return final_answer_raw.strip()
+
+
+def build_id_fields(data, idx):
+    question_id = data.get("question_id", data.get("id", idx))
+    source_index = data.get("source_index", data.get("index"))
+    result_id = data.get("id", idx)
+
+    id_fields = {
+        "id": result_id,
+        "question_id": question_id,
+    }
+
+    if source_index is not None:
+        id_fields["source_index"] = source_index
+        id_fields["pair_id"] = f"{question_id}::{source_index}"
+    else:
+        id_fields["pair_id"] = str(question_id)
+
+    if "decompose_id" in data:
+        id_fields["decompose_id"] = data["decompose_id"]
+    if "index" in data:
+        id_fields["index"] = data["index"]
+
+    return id_fields
+
+
+def evaluate(file_path, output_path):
+    total_em = 0.0
+    total_f1 = 0.0
+    total_acc = 0.0
+    total_recall = 0.0
+    total_precision = 0.0
+    total = 0
+
+    print(f"Evaluating: {file_path}")
+    print("-" * 60)
+
+    with open(file_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
+        for idx, line in enumerate(fin):
+            line = line.strip()
+            if not line:
+                continue
+
             data = json.loads(line)
-            
-            # 1. Extract the prediction using the <answer> tags
-            final_answer_raw = data.get("final_answer", "")
-            match = re.search(r"<answer>(.*?)</answer>", final_answer_raw, re.IGNORECASE | re.DOTALL)
-            
-            if match:
-                prediction = match.group(1).strip()
-            else:
-                # Fallback if the model forgot the tags
-                prediction = final_answer_raw.strip()
 
-            # 2. Get the ground truth list
+            question = data.get("question", "")
+            final_answer_raw = data.get("final_answer", "")
+            prediction = extract_prediction(final_answer_raw)
+
             ground_truths = data.get("answer", [])
             if not isinstance(ground_truths, list):
                 ground_truths = [ground_truths]
-                
-            # 3. Calculate max metrics for this specific question
-            exact_match += metric_max_over_ground_truths(exact_match_score, prediction, ground_truths)
-            f1 += metric_max_over_ground_truths(f1_score, prediction, ground_truths)
-            accuracy += metric_max_over_ground_truths(accuracy_score, prediction, ground_truths)
+            if len(ground_truths) == 0:
+                ground_truths = [""]
+
+            # scores
+            em = metric_max_over_ground_truths(exact_match_score, prediction, ground_truths)
+            acc = metric_max_over_ground_truths(accuracy_score, prediction, ground_truths)
+            precision, recall, f1 = prf_max_over_ground_truths(prediction, ground_truths)
+
+            result = {
+                **build_id_fields(data, idx),
+                "question": question,
+                "answer": ground_truths,
+                "prediction": prediction,
+                "accuracy": acc,
+                "exact_match": em,
+                "precision": precision,
+                "recall": recall,
+                "f1": f1,
+            }
+
+            fout.write(json.dumps(result, ensure_ascii=False) + "\n")
+
+            total_em += em
+            total_f1 += f1
+            total_acc += acc
+            total_precision += precision
+            total_recall += recall
             total += 1
 
-    # 4. Aggregate final percentages
-    exact_match = 100.0 * exact_match / total
-    f1 = 100.0 * f1 / total
-    accuracy = 100.0 * accuracy / total
-    
-    print(f"Total Questions Evaluated: {total}")
-    print(f"Accuracy (Contains)      : {accuracy:.2f}%")
-    print(f"Exact Match (EM)         : {exact_match:.2f}%")
-    print(f"F1 Score                 : {f1:.2f}%")
+    if total == 0:
+        print("No valid examples found.")
+        return
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Evaluate AceSearcher output JSONL against ground truth.")
+    print(f"Output JSONL: {output_path}")
+    print(f"Total: {total}")
+    print(f"Accuracy: {total_acc / total}")
+    print(f"Exact Match: {total_em / total}")
+    print(f"Precision: {total_precision / total}")
+    print(f"Recall: {total_recall / total}")
+    print(f"F1: {total_f1 / total}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--file',
+        "--file",
         type=str,
-        default="eval_datasets/test/hotpotqa/prompts_decompose_test_qwen3_baseline_test/test_e5-large_k10_passage1.jsonl",
-        help='Path to the generated JSONL file'
+        default="eval_datasets/test/2wiki/prompts_decompose_test_ace/test_e5-large-v2_k10_passage1.jsonl",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
     )
     args = parser.parse_args()
-    evaluate(args.file)
+
+    input_path = Path(args.file)
+    output_path = args.output if args.output else str(input_path.with_name(input_path.stem + "_scored.jsonl"))
+
+    evaluate(args.file, output_path)
