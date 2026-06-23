@@ -1,47 +1,78 @@
-# Sub-Question Order Experiment
+# Sub-Question Order Experiment  —  2WikiMultiHop
 
-## What We Are Studying
+## Setup
 
-We take 291 multi-hop questions from 2WikiMultiHop and create two versions of each:
+All questions in this dataset are **2-hop**:
 
-| Version | How it is formed |
+```
+Entity_0  --[Hop1]-->  Bridge Entity  --[Hop2 / Gold Relation]-->  Final Answer
+```
+
+We take 291 questions and create two versions of each:
+
+| Version | Q1 strategy |
 |---|---|
-| **Original** | Question as written |
-| **Rewrite** | Same question with extra relations added as constraints (e.g. citizenship, birth date, award) |
+| **Original** | Q1 asks the first hop directly — a high-selectivity anchor (film title, person name, specific role) that uniquely identifies the bridge entity |
+| **Rewrite** | Q1 asks an added constraint — a low-selectivity filter (citizenship, birthdate, award) that many entities satisfy |
 
-The model answers each question by decomposing it into sub-questions Q1 → Q2 → … → Qn, answering each with a retriever, then combining intermediate answers into a final prediction.
-
-**Example:**
-
-```
-Original:  Who is the child of the director of Mukhyamantri (1996)?
-  Q1: "Who directed Mukhyamantri?"   → Anjan Choudhury
-  Q2: "Who is the child of Q1?"      → Chumki Chowdhury  ✓
-
-Rewrite:   Who is the child of the person with citizenship in British Raj,
-           born Nov 25 1944, who also directed Mukhyamantri?
-  Q1: "Who has citizenship in British Raj?" → Pandit Jawaharlal Nehru  [WRONG]
-  Q2: "Who directed Mukhyamantri?"          → Anjan Choudhury
-  Q3: "Is Q2 the same as Q1?"               → no
-  Q4: "Who is the child of Q3?"             → Frances Bean Cobain  [hallucinated]
-  Prediction: Frances Bean Cobain  ✗   Gold: Chumki Chowdhury
-```
-
-We define the **gold relation step** as the sub-question whose intermediate answer equals the correct final answer. In the original above, Q2 is the gold relation step. In the rewrite, the gold answer never appears — the chain is broken.
+The model answers by decomposing the question into sub-questions Q1…Qn, retrieving an intermediate answer for each, then combining them into a final prediction.
 
 ---
 
-## Overall Performance
+## Definitions
 
-The rewrite causes a large accuracy drop across all 291 pairs:
+### Gold Relation Step (Hop2)
 
-| | Accuracy | Correct |
+The **gold relation step** is the sub-question that applies Hop2 to the bridge entity to produce the final answer. It is identified syntactically as the **last sub-question** that:
+- references a previous answer via `#N` in its text, **and**
+- has a factual (non yes/no) intermediate answer
+
+### Bridge Entity
+
+The **bridge entity** is the intermediate entity fed as input to the gold relation step — the answer to the sub-question labelled `#N` that the gold step references.
+
+In the original chain, the bridge entity is always Q1's answer (the direct result of Hop1).
+
+### Example
+
+```
+Question: Who is the child of the director of Mukhyamantri (1996)?
+
+Original (2 steps):
+  Q1: "Who directed Mukhyamantri?"           → Anjan Choudhury     ← Hop1 / bridge entity
+  Q2: "Who is the child of #1?"              → Chumki Chowdhury    ← Hop2 / gold relation step
+  Bridge entity fed to Q2 = Q1's answer = Anjan Choudhury  ✓
+
+Rewrite (4 steps, adds citizenship constraint as Q1):
+  Q1: "Who has citizenship in British Raj?"  → Pandit Jawaharlal Nehru   ← WRONG bridge entity
+  Q2: "Who was born Nov 25 1944, directed Mukhyamantri?"  → Anjan Choudhury
+  Q3: "Is #2 the same as #1?"               → no
+  Q4: "Who is the child of the person in #3?"→ Frances Bean Cobain  ← gold relation step
+  Bridge entity fed to Q4 = Q3's answer = "no"  ✗  (Anjan Choudhury found at Q2 but not used)
+  Prediction: Frances Bean Cobain  ✗   Gold: Chumki Chowdhury
+```
+
+The rewrite's Q1 (citizenship constraint) retrieved the wrong bridge entity. The correct entity (Anjan Choudhury) appeared at Q2 but the model did not route it to the gold step.
+
+---
+
+## Research Questions
+
+1. **Q1 — Does rewrite Q1 retrieve the correct bridge entity?**
+2. **Q2 — When Q1 is wrong, where does the correct entity appear in the rewrite chain, and does the gold step use it?**
+3. **Q3 — When the wrong bridge entity is fed to the gold relation step, does accuracy collapse?**
+
+---
+
+## Overall Accuracy
+
+The rewrite causes a large accuracy drop:
+
+| | Correct | Accuracy |
 |---|---|---|
-| **Original** | **73.2%** | 213 / 291 |
-| **Rewrite** | **43.0%** | 125 / 291 |
-| **Δ** | **−30.2 pp** | −88 questions |
-
-Outcome breakdown:
+| Original | 213 / 291 | **73.2%** |
+| Rewrite  | 125 / 291 | **43.0%** |
+| Δ | −88 | **−30.2 pp** |
 
 | Outcome | n | % |
 |---|---|---|
@@ -50,161 +81,117 @@ Outcome breakdown:
 | Improved      (orig✗ rew✓) | 14 | 4.8% |
 | Both wrong    (orig✗ rew✗) | 64 | 22.0% |
 
-![Overall performance](figures/fig0_overall_performance.png)
+![Overall accuracy](figures/fig1_overall_accuracy.png)
 
-### Accuracy by question type
+---
 
-Questions are categorised by what the gold step ultimately asks.
+## Q1: Does Rewrite Q1 Retrieve the Correct Bridge Entity?
 
-| Question type | n | Orig acc | Rew acc | Δ | Degrade rate |
-|---|---|---|---|---|---|
-| Birth / death | 131 | 81.7% | 51.1% | −30.5 pp | 45/107 (42%) |
-| Family relation | 82 | 63.4% | 31.7% | −31.7 pp | 31/52 (60%) |
-| Nationality | 20 | 50.0% | 40.0% | −10.0 pp | 3/10 (30%) |
-| Education | 10 | 70.0% | 40.0% | −30.0 pp | 3/7 (43%) |
-| Other | 47 | 76.6% | 40.4% | −36.2 pp | 20/36 (56%) |
+Each rewrite's Q1 is an added constraint (citizenship, birthdate, description, …) rather than the original's direct Hop1 question. We check whether Q1's answer matches the original bridge entity.
 
-**Family relation questions degrade most** (60% of originally-correct cases become wrong). Birth/death questions are the most frequent but also start from the highest original accuracy (82%), so their absolute count of degradations (45) is high even though their degrade rate (42%) is lower.
-
-### Degradation rate by what was added to the rewrite
-
-Questions are categorised by the type of constraint added as the rewrite's Q1.
-
-| Constraint added | n | Orig acc | Rew acc | Degrade rate |
+| Q1 outcome class | n | % | Rewrite acc | Degrade rate |
 |---|---|---|---|---|
-| Death date | 5 | 80.0% | 40.0% | 3/4 (75%) |
-| Birthdate | 73 | 78.1% | 39.7% | 30/57 (53%) |
-| Other description | 123 | 73.2% | 40.7% | 46/90 (51%) |
-| Award / honor | 15 | 80.0% | 40.0% | 6/12 (50%) |
-| Citizenship | 12 | 75.0% | 50.0% | 4/9 (44%) |
-| Family constraint | 63 | 65.1% | 50.8% | 13/41 (32%) |
+| Q1 retrieves **correct** bridge entity | 150 | 51.5% | 68.0% | 16.2% |
+| Q1 wrong, correct entity found & used by gold step | 6 | 2.1% | 50.0% | 50.0% |
+| Q1 wrong, correct entity found but **not used** by gold step | 31 | 10.7% | 19.4% | 75.0% |
+| Q1 wrong, correct entity **never found** in rewrite | 81 | 27.8% | 14.8% | 85.2% |
+| Bridge entity not identifiable | 23 | 7.9% | 8.7% | 90.9% |
 
-**Low-selectivity temporal/demographic constraints (birthdate, death date) are the most damaging** — they match many entities so Q1 often retrieves the wrong one. **Family constraints degrade least** because they tend to be more specific (listing children's names, spouse, etc.) and the correct entity is more likely to be found uniquely.
+In **40.5% of pairs** (118/291), rewrite Q1 retrieves the wrong bridge entity. In only **51.5%** does it get the right one immediately.
 
-### Accuracy by original chain length
+![Q1 selectivity](figures/fig2_q1_selectivity.png)
 
-| Original chain length | n | Orig acc | Rew acc | Degrade rate |
+**Examples:**
+
+```
+Q1 CORRECT — rewrite Q1 finds the right bridge entity
+  Question : Where did the director of The Decision Of Christopher Blake die?
+  Orig Q1  : "Who directed The Decision Of Christopher Blake?"  → Peter Godfrey  ← bridge
+  Rew  Q1  : "Who worked in film/TV and died of Parkinson's...?" → Peter Godfrey  ✓ (correct bridge)
+  Rew  Q2  : "In which city did #1 pass away?"                   → Hollywood  ✓
+
+Q1 WRONG, NOT FOUND — wrong entity, gold answer never reached
+  Question : Where did Edward Hoby's father study?
+  Orig Q1  : "Who is Edward Hoby's father?"                 → Thomas Hoby  ← bridge
+  Rew  Q1  : "Who was awarded Knight Bachelor, listed in DNB?" → Sir William Comer Petheram  ✗
+  Rew  Q3  : "Which college did #1 attend?"                  → University of Calcutta  ✗
+  Bridge entity (Thomas Hoby) never appears anywhere in rewrite chain.
+```
+
+---
+
+## Q2: When Q1 Is Wrong, Where Does the Correct Entity Appear?
+
+Of the **118 pairs** where Q1 retrieved the wrong entity:
+
+| | n | % of wrong-Q1 cases |
+|---|---|---|
+| Correct entity found somewhere in rewrite chain | 37 | 31.4% |
+| → and **used** as input to gold step (recovery) | 6 | 16.2% of those found |
+| → found but **not used** by gold step | 31 | 83.8% of those found |
+| Correct entity **never found** anywhere in rewrite | 81 | 68.6% |
+
+When the correct entity does appear, it is almost always at Q2 of the rewrite chain — the step right after the wrong Q1. But in 84% of cases, the gold relation step references Q1 (wrong entity) or a verification result, not Q2, so the correct entity is never used.
+
+| Position of first correct entity appearance | n | Actually used by gold step |
+|---|---|---|
+| Q2 | 25 | 5 |
+| Q3 | 10 | 1 |
+| Q4 | 2 | 0 |
+
+![Bridge recovery position](figures/fig4_bridge_recovery_position.png)
+
+**Example — correct entity found but not used:**
+
+```
+  Question : Who is the child of the director of Mukhyamantri (1996)?
+  Bridge   : Anjan Choudhury
+
+  Rew Q1: "Who has citizenship in British Raj?"         → Pandit Jawaharlal Nehru  ✗
+  Rew Q2: "Who was born Nov 25 1944, directed Mukhyamantri?" → Anjan Choudhury  ✓ (correct entity appears here)
+  Rew Q3: "Is #2 the same as #1?"                       → no
+  Rew Q4: "Who is the child of the person in #3?"       → Frances Bean Cobain  ← gold step uses #3="no"
+  Correct entity (Q2=Anjan Choudhury) is present but gold step references Q3, not Q2.
+```
+
+---
+
+## Q3: When the Wrong Bridge Entity Reaches the Gold Step, Does Accuracy Collapse?
+
+We compare pairs where the gold relation step receives the correct vs wrong bridge entity as input:
+
+| Bridge entity fed to gold step | n | Rewrite acc | Gold answer in step | Degrade rate |
 |---|---|---|---|---|
-| 2 sub-questions | 247 | 71.7% | 48.6% | 71/177 (40%) |
-| **3 sub-questions** | **42** | **81.0%** | **9.5%** | **30/34 (88%)** |
+| **Correct** bridge entity | 149 | **69.1%** | 69.8% | 16.5% |
+| **Wrong** bridge entity | 109 | **16.5%** | 22.0% | 83.3% |
 
-Three-step questions degrade catastrophically (88% degrade rate, rewrite accuracy drops from 81% to 10%). Longer original chains require the rewrite to add even more sub-questions, making the Q1 constraint even more likely to be non-selective and break the chain.
+![Bridge entity impact](figures/fig3_bridge_entity_impact.png)
 
----
+When the correct bridge entity reaches the gold relation step, the rewrite succeeds at 69% — close to the original's 73%. When the wrong entity is fed to the gold step, accuracy collapses to 16.5% and 83% of originally-correct pairs degrade.
 
-## Research Questions
-
-We ask three questions in order, each building on the previous:
-
-1. **Q1 — Where does the gold relation step appear in the original chain?**
-2. **Q2 — When the rewrite adds extra constraints, does the model keep the gold relation step at the same position?**
-3. **Q3 — When the position changes (or the step disappears entirely), does the final answer accuracy degrade?**
+![Summary](figures/fig5_summary.png)
 
 ---
 
-## Q1: Where is the gold relation step in the original chain?
+## Key Finding
 
-> **Finding: It is almost always the last sub-question (97% of detectable cases).**
+The causal chain is:
 
-Of 291 original chains:
-- 208 (71.5%) have the gold answer detectable in their intermediate steps
-- 83 (28.5%) do not — these are hard questions where the retriever never surfaces the gold entity
+```
+Rewrite Q1 = low-selectivity constraint
+  → retrieves wrong bridge entity (40.5% of pairs)
+    → wrong entity propagated to gold relation step (Hop2)
+      → gold relation applied to wrong entity → wrong final answer
+        → accuracy collapses (83% degradation rate)
+```
 
-Among the 208 detectable cases, the gold relation step sits at:
+**Rewrite Q1 is wrong in 40.5% of pairs.** When wrong, the correct bridge entity is found later in the chain (Q2, Q3) in 31% of those cases, but the model almost never reroutes it to the gold relation step. The wrong entity silently propagates through the chain.
 
-| Position | Count | % |
-|---|---|---|
-| **Last sub-question** | **202** | **97.1%** |
-| Second-to-last | 5 | 2.4% |
-| Third-to-last | 1 | 0.5% |
-
-The original decomposition almost always follows the same structure: Q1 through Q(n−1) gather intermediate entities, and the final hop Qn produces the answer. This is the baseline we test against in Q2 and Q3.
-
-![Q1 figure](figures/fig1_q1_original_gold_position.png)
+**The controlling factor is bridge entity correctness at the gold relation step**, not the position of the gold relation step itself. When the correct bridge entity reaches the gold step (regardless of position), the chain succeeds at 69%. When the wrong entity arrives there, it fails at 83%.
 
 ---
 
-## Q2: Does the rewrite preserve the gold relation position?
-
-> **Finding: In 35% of pairs it is preserved. In 24% the gold answer vanishes from the rewrite chain entirely.**
-
-When extra constraints are added, the model restructures the decomposition. We classify each pair into one of six outcome classes:
-
-| Class | Definition | Count | % |
-|---|---|---|---|
-| **LAST_BOTH** | Gold at last step in **both** original and rewrite | 101 | 34.7% |
-| **LAST_ORIG_ONLY** | Gold at last step in original, **not last** in rewrite | 34 | 11.7% |
-| **NOT_LAST_BOTH** | Gold not at last step in either (comparison / date questions) | 4 | 1.4% |
-| **MISSING_REW** | Gold found in original, **absent from rewrite** | 69 | 23.7% |
-| **MISSING_ORIG** | Gold found in rewrite only (rewrite improves coverage) | 13 | 4.5% |
-| **MISSING_BOTH** | Gold absent from both chains (intrinsically hard questions) | 70 | 24.1% |
-
-The two most important classes are:
-- **LAST_BOTH (35%)** — the rewrite adds new constraints but keeps the gold hop at the end. Order structurally preserved.
-- **MISSING_REW (24%)** — the wrong entity is retrieved in Q1, so the gold answer never appears anywhere in the chain. This is the signature of the wrong-entity cascade.
-
-![Q2 donut](figures/fig2_q2_order_preservation_donut.png)
-
-When we look only at pairs where the gold step is detectable in both chains, the rewrite clearly pushes the gold step away from the last position:
-
-![Q2 shift](figures/fig2b_q2_position_shift.png)
-
-Which question types experience the most order change and chain breakage?
-
-![Question type vulnerability](figures/fig6_order_class_by_question_type.png)
-
-**Family relation questions** have the highest chain breakage rate (MISSING_REW 29%) and the highest degradation rate (60%). **Birth/death questions** have more absolute failures but a lower chain breakage rate (22%) because their gold step often involves a date that the retriever can surface even from a wrong starting entity.
-
----
-
-## Q3: When position changes, does accuracy degrade?
-
-> **Finding: Position shift alone is a weak signal (+20pp). Disappearance of the gold step is catastrophic (95% degradation).**
-
-We measure the **degradation rate**: the fraction of pairs where the original was correct but the rewrite was wrong, among pairs where the original was correct.
-
-| Order class | What it means | Degradation rate |
-|---|---|---|
-| LAST_BOTH | Gold preserved at last step | **11%** (10/93) |
-| LAST_ORIG_ONLY | Gold shifted to a non-last step | **30%** (8/27) |
-| MISSING_REW | Gold answer vanished from rewrite chain | **95%** (58/61) |
-| MISSING_BOTH | Gold absent from both (hard questions) | **89%** (25/28) |
-
-![Q3 degradation](figures/fig3_q3_degradation_by_order_class.png)
-
-The full accuracy breakdown across all four outcome groups (both correct / degraded / improved / both wrong) per order class:
-
-![Heatmap](figures/fig4_heatmap_order_vs_accuracy.png)
-
-**Interpretation:**
-
-- **LAST_BOTH → 11% degradation (baseline):** Even when the gold relation stays at the last step, ~10% of rewrites still fail. These are synthesis errors (model reaches the right intermediate but outputs the wrong step) or format mismatches — not order-related at all.
-
-- **LAST_ORIG_ONLY → 30% degradation:** When the gold step shifts to an earlier position (e.g. Q2 of 5 instead of Q2 of 2), accuracy drops 3× the baseline. The model can still succeed in 70% of cases — the positional shift is a real but mild signal.
-
-- **MISSING_REW → 95% degradation:** This is the dominant failure mode. The gold answer is completely unreachable in the rewrite chain because Q1 retrieved the wrong entity. Every downstream step builds on that wrong entity, so the final prediction is almost always wrong.
-
----
-
-## Summary
-
-The three research questions answer in sequence:
-
-**A → B → C** (see figure below)
-
-- **A.** The gold relation step sits at the last position in 97% of original chains.
-- **B.** The rewrite preserves this in only 35% of pairs. In 24% the gold answer vanishes from the chain entirely.
-- **C.** Vanishing gold (MISSING_REW) → 95% degradation. Position shift alone (LAST_ORIG_ONLY) → 30% degradation. Gold preserved → 11% degradation (baseline noise).
-
-![Summary funnel](figures/fig5_summary_funnel.png)
-
-**The decisive variable is not position — it is reachability.** When the gold answer appears anywhere in the rewrite's intermediate chain, accuracy is broadly maintained regardless of which step produces it. When the gold answer disappears entirely (wrong-entity cascade), the model almost always fails.
-
----
-
-## Experiment 1: Cross-Group Analysis (order_experiment.py)
-
-The earlier analysis (`../order_experiment.py`) approaches the same data from the verification-step angle rather than the gold-step angle. Its findings are consistent:
+## Experiment 1 Cross-Group Results  (from `../order_experiment.py`)
 
 | Group | n | V→no | V→yes | Gold in rewrite chain | Gold in original chain |
 |---|---|---|---|---|---|
@@ -214,23 +201,18 @@ The earlier analysis (`../order_experiment.py`) approaches the same data from th
 | **Original better (orig✓ rew✗)** | **102** | **35.3%** | **10.8%** | **18.6%** | **75.5%** |
 
 **V→no**: verification step fired "no" — model confirmed Q1 retrieved the wrong entity.
-**V→yes**: verification step fired "yes" — Q1 retrieved the right entity despite reordering.
-
-Three observations:
-1. **Order change is universal, not predictive.** ~97–98% of rewrites add a verification sub-question across all four groups. The mere presence of a verification step does not predict failure.
-2. **V→no is the failure signal.** Concentrated in the two failing groups (35.3%, 31.2%) and nearly absent in the success groups (9.0%).
-3. **Constraint selectivity controls the outcome.** When the added constraint uniquely identifies the target entity, V→yes and the chain succeeds. When it is non-selective, V→no and the chain collapses.
+**V→yes**: verification step fired "yes" — correct entity confirmed.
 
 ### Failure type breakdown (n=102 degradation cases)
 
 | Type | Count | % | Cause |
 |---|---|---|---|
-| **A — Wrong-entity cascade** | **62** | **60.8%** | Q1 retrieves wrong entity; downstream steps inherit the error — via explicit "no" gate (A1, 31 cases) or silent propagation (A2, 31 cases) |
-| B — Synthesis failure | 19 | 18.6% | Model reaches gold answer in intermediates but outputs the wrong step as the final prediction |
-| E — Date/comparison failure | 17 | 16.7% | Rewrite embeds explicit dates; retriever returns wrong dates or model outputs a description instead of a name |
+| **A — Wrong-entity cascade** | **62** | **60.8%** | Q1 wrong bridge entity; downstream steps inherit the error (A1: explicit "no" gate, 31 cases; A2: silent propagation, 31 cases) |
+| B — Synthesis failure | 19 | 18.6% | Gold answer reached in intermediates but wrong step output as final prediction |
+| E — Date/comparison failure | 17 | 16.7% | Rewrite embeds explicit dates; retriever returns wrong dates or model outputs description instead of name |
 | C — Format mismatch | 4 | 3.9% | Correct reasoning but prediction is a description, not an entity name |
 
-Type A (order-induced) accounts for **60.8%** of degradation. Types B, C, E are not caused by ordering.
+Type A (wrong bridge entity cascade) accounts for **60.8%** of degradation — directly caused by low-selectivity Q1.
 
 ---
 
@@ -243,15 +225,11 @@ Type A (order-induced) accounts for **60.8%** of degradation. Types B, C, E are 
 | `rewrite.jsonl` | Rewritten questions with added constraints |
 | `rewrite_score.jsonl` | Accuracy scores for rewritten questions |
 | `original_acc1_rewrite_acc0.jsonl` | Paired records for the 102 degradation cases |
-| `original_acc1_rewrite_acc0.summary.json` | Summary statistics for the degradation cases |
-| `order_experiment_results.json` | Per-example failure type classification |
-| `figures/fig0_overall_performance.png` | Overall accuracy + breakdown by question type and constraint type |
-| `figures/fig1_q1_original_gold_position.png` | Q1: where the gold step sits in the original chain |
-| `figures/fig2_q2_order_preservation_donut.png` | Q2: overall order-preservation class distribution |
-| `figures/fig2b_q2_position_shift.png` | Q2: how the gold step position shifts from original to rewrite |
-| `figures/fig3_q3_degradation_by_order_class.png` | Q3: degradation rate per order class |
-| `figures/fig4_heatmap_order_vs_accuracy.png` | Q3: full cross-tabulation heatmap |
-| `figures/fig5_summary_funnel.png` | Summary: A→B→C flow from original position to accuracy |
-| `figures/fig6_order_class_by_question_type.png` | Which question types are most vulnerable to chain breakage |
+| `order_experiment_results.json` | Per-example failure type classification (Experiment 1) |
+| `figures/fig1_overall_accuracy.png` | Overall accuracy: original vs rewrite |
+| `figures/fig2_q1_selectivity.png` | Q1 outcome class distribution and accuracy by class |
+| `figures/fig3_bridge_entity_impact.png` | Accuracy when correct vs wrong bridge entity fed to gold step |
+| `figures/fig4_bridge_recovery_position.png` | Where the correct entity appears in the rewrite chain |
+| `figures/fig5_summary.png` | Causal chain: Q1 selectivity → bridge entity → accuracy |
 | `../order_experiment.py` | Experiment 1 — cross-group comparison and failure type classification |
-| `gold_relation_order.py` | Experiment 2 — gold relation position analysis (all figures above) |
+| `gold_relation_order.py` | Experiment 2 — gold relation and bridge entity analysis |

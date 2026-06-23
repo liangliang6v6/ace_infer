@@ -1,50 +1,53 @@
 """
-Gold-Relation Order Analysis
-=============================
+Gold-Relation Order Analysis  —  2WikiMultiHop
+===============================================
 
-TASK DEFINITION
----------------
-We take a 2WikiMultiHop question and create two versions:
+All questions in this dataset are 2-hop:
 
-  Original:  the question as-is
-  Rewrite:   the same question with extra relations added (e.g. citizenship,
-             birth date, award) that act as additional constraints
+    Entity_0  --[Hop1]--->  Bridge Entity  --[Hop2 / Gold Relation]--->  Final Answer
 
-Both versions are answered by a model that first decomposes the question
-into sub-questions (Q1, Q2, ..., Qn), answers each one, then combines
-the intermediate answers into a final prediction.
+When the model decomposes a question it produces sub-questions Q1...Qn and
+retrieves an intermediate answer for each.
 
-KEY CONCEPT — The "gold relation"
-  Each decomposition chain contains one critical step: the sub-question
-  whose intermediate answer IS the gold (correct) final answer.
-  We call this the "gold relation step".
+Definitions used throughout this script
+----------------------------------------
+Gold relation step  —  The sub-question that applies Hop2 (the gold relation)
+    to the bridge entity to produce the final answer.
+    Identified syntactically: the LAST sub-question that
+      (a) references a previous answer via "#N" in its text, and
+      (b) has a factual (non yes/no) answer.
 
-  In the original chain it is almost always the LAST sub-question.
-  E.g.  Q1: "Who directed Mukhyamantri?" → Anjan Choudhury
-        Q2: "Who is the child of #1?"    → Chumki Chowdhury  ← GOLD STEP
+Bridge entity  —  The intermediate entity that the gold relation step takes as
+    input.  It is the answer to the sub-question labelled "#N" in the gold
+    relation step's text.
 
-RESEARCH QUESTIONS
-------------------
-  Q1. In the original chain, where does the gold relation step appear?
-      (Is it always the last sub-question?)
+In the original chain Hop1 is always Q1 (the only factual step before Hop2),
+so the bridge entity = Q1's answer.
 
-  Q2. When the rewrite adds extra relations, does the model keep the gold
-      relation at the same relative position in the decomposition chain?
+Research focus
+--------------
+When the rewrite adds extra constraints, its Q1 is a low-selectivity filter
+(citizenship, birthdate, award, ...) rather than the original's high-selectivity
+anchor.  We ask:
 
-  Q3. When the position changes (or the gold step disappears), does the
-      final answer accuracy degrade?
+  Q1.  Does rewrite Q1 retrieve the correct bridge entity?
+  Q2.  When it does not, which step in the rewrite chain first finds the
+       correct bridge entity, and does that entity get fed to the gold step?
+  Q3.  When the wrong bridge entity is fed to the gold step, does accuracy
+       collapse?
 """
 
 import json
 import re
 from pathlib import Path
-from collections import Counter, defaultdict
+from collections import Counter
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 import numpy as np
+
+# ── paths ─────────────────────────────────────────────────────────────────────
 
 DATA_DIR   = Path(__file__).resolve().parent
 ORIG_RAW   = DATA_DIR / "original.jsonl"
@@ -54,62 +57,11 @@ REW_SCORE  = DATA_DIR / "rewrite_score.jsonl"
 FIG_DIR    = DATA_DIR / "figures"
 FIG_DIR.mkdir(exist_ok=True)
 
-
-# ── question-type classification ──────────────────────────────────────────────
-
-def classify_gold_relation(last_q_text: str) -> str:
-    """Classify the type of the gold relation step by the final sub-question text."""
-    t = last_q_text.lower()
-    if re.search(r'\bfather\b|\bmother\b|\bparent\b|\bgrandfather\b|\bgrandmother\b'
-                 r'|\bchild\b|\bson\b|\bdaughter\b|\bspouse\b|\bhusband\b|\bwife\b'
-                 r'|\bsibling\b|\bbrother\b|\bsister\b|\bin-law\b', t):
-        return "Family relation"
-    if re.search(r'\bdie\b|\bdeath\b|\bborn\b|\bbirth\b|\bage\b|\byounger\b|\bolder\b', t):
-        return "Birth / death"
-    if re.search(r'\bstudy\b|\beducat\b|\bgraduate\b|\bcollege\b|\buniversity\b'
-                 r'|\bschool\b|\battend\b', t):
-        return "Education"
-    if re.search(r'\bnational\b|\bnationality\b|\bcitizen\b', t):
-        return "Nationality"
-    if re.search(r'\bburied\b|\bgrave\b|\btomb\b', t):
-        return "Burial place"
-    return "Other"
-
-
-def classify_added_constraint(rew_q1_text: str) -> str:
-    """Classify the type of constraint added as Q1 in the rewrite."""
-    t = rew_q1_text.lower()
-    if re.search(r'\bborn\b|\bbirth\b', t):
-        return "Birthdate"
-    if re.search(r'\bcitizen\b|\bnational\b|\bnationality\b|\bcountry of\b', t):
-        return "Citizenship"
-    if re.search(r'\baward\b|\bprize\b|\bmedal\b|\bhonor\b|\brecipient\b', t):
-        return "Award / honor"
-    if re.search(r'\bdied\b|\bdeath\b|\bdeceased\b', t):
-        return "Death date"
-    if re.search(r'\bchildren\b|\bson\b|\bdaughter\b|\bparent\b'
-                 r'|\bfather\b|\bmother\b|\bspouse\b|\bhusband\b|\bwife\b', t):
-        return "Family constraint"
-    if re.search(r'\bfield of work\b|\boccupation\b|\bprofession\b', t):
-        return "Occupation"
-    return "Other description"
-
-
-# ── helpers ───────────────────────────────────────────────────────────────────
+# ── string helpers ────────────────────────────────────────────────────────────
 
 def read_jsonl(path):
-    rows = []
     with open(path, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                rows.append(json.loads(line))
-    return rows
-
-
-def row_key(row, i):
-    return (row.get("question_id", i), row.get("source_index", i),
-            row.get("decompose_id", 0), row.get("index", i))
+        return [json.loads(l) for l in f if l.strip()]
 
 
 def normalise(text):
@@ -118,7 +70,24 @@ def normalise(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
+def entity_match(a, b):
+    """Return True if two entity strings refer to the same entity."""
+    if not isinstance(a, str) or not isinstance(b, str):
+        return False
+    na, nb = normalise(a), normalise(b)
+    if not na or not nb:
+        return False
+    if na in nb or nb in na:
+        return True
+    ta, tb = set(na.split()), set(nb.split())
+    short, long = (ta, tb) if len(ta) <= len(tb) else (tb, ta)
+    if len(short) >= 2 and len(short & long) / len(short) >= 0.6:
+        return True
+    return False
+
+
 def gold_match(gold_list, text):
+    """Return True if any gold string is substantially present in text."""
     if not isinstance(text, str):
         return False
     nt = normalise(text)
@@ -128,80 +97,115 @@ def gold_match(gold_list, text):
         ng = normalise(g)
         if not ng:
             continue
-        if ng in nt:
+        if ng in nt or nt in ng:
             return True
-        if len(ng.split()) >= 2 and nt in ng:
-            return True
-        gold_toks, text_toks = set(ng.split()), set(nt.split())
-        if len(gold_toks) >= 2 and len(gold_toks & text_toks) / len(gold_toks) >= 0.5:
+        tg, tt = set(ng.split()), set(nt.split())
+        if len(tg) >= 2 and len(tg & tt) / len(tg) >= 0.5:
             return True
     return False
 
 
-def find_gold_labels(gold, intermediates):
-    """Labels of sub-questions whose intermediate answer matches gold."""
-    return [lbl for lbl, val in intermediates.items()
-            if isinstance(val, str) and gold_match(gold, val)]
+# ── core identification ───────────────────────────────────────────────────────
+
+YES_NO = {"yes", "no", "yes.", "no.", "true", "false", "yes,", "no,"}
 
 
-def rank_from_end(label, all_labels):
-    """0 = last sub-question, 1 = second-to-last, etc.  -1 if not found."""
-    if label not in all_labels:
-        return -1
-    return len(all_labels) - 1 - all_labels.index(label)
-
-
-def classify_pair(gold, orig_inter, rew_inter, orig_decomp, rew_decomp):
+def find_gold_step(decomposed, intermediates):
     """
-    Returns a dict describing where the gold relation step sits in each chain.
+    Identify the gold relation step in a decomposition chain.
 
-    order_class values:
-      LAST_BOTH       — gold at last step in both chains
-      LAST_ORIG_ONLY  — gold at last step in original, NOT last in rewrite
-      NOT_LAST_BOTH   — gold not at last step in either (comparison / date Qs)
-      MISSING_REW     — gold found in original, absent from rewrite
-      MISSING_ORIG    — gold absent from original, found in rewrite  (rare)
-      MISSING_BOTH    — gold absent from both chains
+    Returns the LAST sub-question that:
+      (a) contains a '#N' reference to a previous answer
+      (b) has a factual (non yes/no) intermediate answer
+
+    Returns a dict with keys: label, text, answer, rfe, ref_label
+    Returns None if no such step exists.
     """
-    orig_labels = [q["label"] for q in orig_decomp]
-    rew_labels  = [q["label"] for q in rew_decomp]
+    labels = [q["label"] for q in decomposed]
+    n = len(labels)
+    candidates = []
+    for i, q in enumerate(decomposed):
+        lbl = q["label"]
+        txt = q.get("text", "")
+        ans = intermediates.get(lbl, "")
+        if not re.search(r"#\d", txt):
+            continue
+        if isinstance(ans, str) and ans.strip().lower() in YES_NO:
+            continue
+        ref = re.search(r"#(\d+)", txt)
+        ref_lbl = f"Q{ref.group(1)}" if ref else None
+        candidates.append({
+            "label": lbl, "text": txt, "answer": ans,
+            "rfe": n - 1 - i, "ref_label": ref_lbl,
+        })
+    if not candidates:
+        return None
+    return min(candidates, key=lambda x: x["rfe"])
 
-    gold_orig = find_gold_labels(gold, orig_inter)
-    gold_rew  = find_gold_labels(gold, rew_inter)
 
-    orig_rfe = min((rank_from_end(l, orig_labels) for l in gold_orig), default=-1)
-    rew_rfe  = min((rank_from_end(l, rew_labels)  for l in gold_rew),  default=-1)
+def analyze_pair(orig_decomp, rew_decomp, orig_inter, rew_inter, gold):
+    """
+    For one question pair, identify:
+      - bridge entity in the original (correct anchor for Hop2)
+      - whether rewrite Q1 retrieves the correct bridge entity
+      - where in the rewrite chain the correct bridge entity first appears
+      - which entity is actually fed to the gold relation step in the rewrite
+      - whether the gold step produces the correct final answer
+    """
+    # ── original chain ────────────────────────────────────────────────────────
+    gs_orig    = find_gold_step(orig_decomp, orig_inter)
+    bridge_orig = orig_inter.get(gs_orig["ref_label"]) if gs_orig and gs_orig["ref_label"] else None
 
-    found_orig = bool(gold_orig)
-    found_rew  = bool(gold_rew)
-    at_last_orig = (orig_rfe == 0)
-    at_last_rew  = (rew_rfe  == 0)
+    # ── rewrite Q1 ────────────────────────────────────────────────────────────
+    rew_q1_label  = rew_decomp[0]["label"] if rew_decomp else None
+    rew_q1_text   = rew_decomp[0].get("text", "") if rew_decomp else ""
+    rew_q1_answer = rew_inter.get(rew_q1_label) if rew_q1_label else None
+    q1_correct    = entity_match(bridge_orig, rew_q1_answer) if bridge_orig else None
 
-    if not found_orig and not found_rew:
-        order_class = "MISSING_BOTH"
-    elif found_orig and not found_rew:
-        order_class = "MISSING_REW"
-    elif not found_orig and found_rew:
-        order_class = "MISSING_ORIG"
-    elif at_last_orig and at_last_rew:
-        order_class = "LAST_BOTH"
-    elif at_last_orig and not at_last_rew:
-        order_class = "LAST_ORIG_ONLY"
+    # ── rewrite gold relation step ────────────────────────────────────────────
+    gs_rew      = find_gold_step(rew_decomp, rew_inter)
+    bridge_rew  = rew_inter.get(gs_rew["ref_label"]) if gs_rew and gs_rew["ref_label"] else None
+    gold_step_correct_bridge = entity_match(bridge_orig, bridge_rew) if bridge_orig and bridge_rew else False
+    gold_found_rew = gold_match(gold, gs_rew["answer"]) if gs_rew else False
+
+    # ── where does the correct bridge entity first appear in the rewrite? ─────
+    first_correct_pos = None   # 0-indexed position in rewrite chain
+    for i, q in enumerate(rew_decomp):
+        ans = rew_inter.get(q["label"], "")
+        if entity_match(bridge_orig, ans):
+            first_correct_pos = i
+            break
+
+    # ── overall classification (Q1 selectivity outcome) ──────────────────────
+    if bridge_orig is None:
+        q1_class = "BRIDGE_UNKNOWN"
+    elif q1_correct:
+        q1_class = "Q1_CORRECT"
+    elif first_correct_pos is not None and gold_step_correct_bridge:
+        q1_class = "Q1_WRONG_RECOVERED"
+    elif first_correct_pos is not None and not gold_step_correct_bridge:
+        q1_class = "Q1_WRONG_FOUND_NOT_USED"
     else:
-        order_class = "NOT_LAST_BOTH"
+        q1_class = "Q1_WRONG_NOT_FOUND"
 
-    return dict(
-        gold_labels_orig=gold_orig,  gold_labels_rew=gold_rew,
-        orig_rfe=orig_rfe,           rew_rfe=rew_rfe,
-        found_orig=found_orig,       found_rew=found_rew,
-        at_last_orig=at_last_orig,   at_last_rew=at_last_rew,
-        order_class=order_class,
-        n_orig=len(orig_labels),     n_rew=len(rew_labels),
-        delta_steps=len(rew_labels) - len(orig_labels),
-    )
+    return {
+        "gs_orig": gs_orig,
+        "gs_rew":  gs_rew,
+        "bridge_orig": bridge_orig,
+        "bridge_rew":  bridge_rew,
+        "rew_q1_answer": rew_q1_answer,
+        "rew_q1_text":   rew_q1_text,
+        "q1_correct":    q1_correct,
+        "gold_step_correct_bridge": gold_step_correct_bridge,
+        "gold_found_rew":           gold_found_rew,
+        "first_correct_pos":        first_correct_pos,
+        "q1_class":                 q1_class,
+        "n_orig": len(orig_decomp),
+        "n_rew":  len(rew_decomp),
+    }
 
 
-# ── load & annotate all pairs ─────────────────────────────────────────────────
+# ── load and annotate all 291 pairs ──────────────────────────────────────────
 
 def load_records():
     orig_raws   = read_jsonl(ORIG_RAW)
@@ -209,14 +213,18 @@ def load_records():
     rew_raws    = read_jsonl(REW_RAW)
     rew_scores  = read_jsonl(REW_SCORE)
 
-    orig_idx = {row_key(r, i): r for i, r in enumerate(orig_raws)}
-    rew_idx  = {row_key(r, i): r for i, r in enumerate(rew_raws)}
+    def key(r, i):
+        return (r.get("question_id", i), r.get("source_index", i),
+                r.get("decompose_id", 0), r.get("index", i))
+
+    orig_idx = {key(r, i): r for i, r in enumerate(orig_raws)}
+    rew_idx  = {key(r, i): r for i, r in enumerate(rew_raws)}
 
     records = []
     for i, (os, rs) in enumerate(zip(orig_scores, rew_scores)):
-        key = row_key(os, i)
-        o   = orig_idx.get(key, {})
-        r   = rew_idx.get(key, {})
+        k = key(os, i)
+        o = orig_idx.get(k, {})
+        r = rew_idx.get(k, {})
 
         orig_ok = float(os.get("accuracy", 0)) == 1.0
         rew_ok  = float(rs.get("accuracy", 0)) == 1.0
@@ -225,27 +233,18 @@ def load_records():
         elif not orig_ok and rew_ok: acc_group = "REW_BETTER"
         else:                        acc_group = "BOTH_WRONG"
 
-        gold      = os.get("answer", [])
+        gold = os.get("answer", [])
         orig_decomp = o.get("decomposed", [])
         rew_decomp  = r.get("decomposed", [])
-        info = classify_pair(
-            gold,
+        info = analyze_pair(
+            orig_decomp, rew_decomp,
             o.get("intermediate_answers", {}),
             r.get("intermediate_answers", {}),
-            orig_decomp,
-            rew_decomp,
+            gold,
         )
-
-        # question-type labels
-        last_q_text = orig_decomp[-1].get("text", "") if orig_decomp else ""
-        rew_q1_text = rew_decomp[0].get("text", "")  if rew_decomp  else ""
-        gold_rel_type  = classify_gold_relation(last_q_text)
-        added_con_type = classify_added_constraint(rew_q1_text)
-
         records.append({
             "index": i,
-            "orig_ok": orig_ok, "rew_ok": rew_ok,
-            "acc_group": acc_group,
+            "orig_ok": orig_ok, "rew_ok": rew_ok, "acc_group": acc_group,
             "gold": gold,
             "orig_question": o.get("question", ""),
             "rew_question":  r.get("question", ""),
@@ -255,8 +254,6 @@ def load_records():
             "rew_inter":   r.get("intermediate_answers", {}),
             "orig_pred":   os.get("prediction", ""),
             "rew_pred":    rs.get("prediction", ""),
-            "gold_rel_type":  gold_rel_type,
-            "added_con_type": added_con_type,
             **info,
         })
     return records
@@ -264,1080 +261,573 @@ def load_records():
 
 # ── figure helpers ────────────────────────────────────────────────────────────
 
-COLORS = {
-    "BOTH_CORRECT": "#2196F3",   # blue
-    "ORIG_BETTER":  "#F44336",   # red
-    "REW_BETTER":   "#4CAF50",   # green
-    "BOTH_WRONG":   "#9E9E9E",   # grey
-}
-ORDER_COLOR = {
-    "LAST_BOTH":       "#1565C0",
-    "LAST_ORIG_ONLY":  "#FB8C00",
-    "NOT_LAST_BOTH":   "#AB47BC",
-    "MISSING_REW":     "#E53935",
-    "MISSING_ORIG":    "#43A047",
-    "MISSING_BOTH":    "#78909C",
-}
-ACC_LABELS = ["BOTH_CORRECT", "ORIG_BETTER", "REW_BETTER", "BOTH_WRONG"]
-ORDER_CLASSES = [
-    "LAST_BOTH", "LAST_ORIG_ONLY", "NOT_LAST_BOTH",
-    "MISSING_REW", "MISSING_ORIG", "MISSING_BOTH",
-]
-ORDER_LABELS = {
-    "LAST_BOTH":      "Gold at last step\nin BOTH chains",
-    "LAST_ORIG_ONLY": "Gold shifts to\nnon-last in rewrite",
-    "NOT_LAST_BOTH":  "Gold not last\nin either chain",
-    "MISSING_REW":    "Gold VANISHES\nfrom rewrite chain",
-    "MISSING_ORIG":   "Gold found in\nrewrite only",
-    "MISSING_BOTH":   "Gold absent\nfrom both chains",
-}
-
-
-def save(fig, name):
+def save_fig(fig, name):
     path = FIG_DIR / name
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"  Saved: {path}")
+    print(f"  Saved → {path.name}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# FIGURE 1 — Q1: In the original chain, where is the gold relation step?
+# Fig 1  —  Overall accuracy: original vs rewrite (4-group stacked bar)
 # ══════════════════════════════════════════════════════════════════════════════
 
-def fig_q1_original_gold_position(records):
-    """
-    Show where the gold step sits in the ORIGINAL chain.
-    Rank-from-end: 0 = last sub-question, 1 = second-to-last, etc.
-    """
-    rfe_vals = [r["orig_rfe"] for r in records if r["found_orig"]]
-    counter  = Counter(rfe_vals)
-    n_found  = len(rfe_vals)
-    n_total  = len(records)
+def fig_overall(records):
+    n = len(records)
+    gc = Counter(r["acc_group"] for r in records)
+    n_orig_ok = sum(1 for r in records if r["orig_ok"])
+    n_rew_ok  = sum(1 for r in records if r["rew_ok"])
 
-    ranks = sorted(counter.keys())
-    counts = [counter[k] for k in ranks]
-    labels = ["last\n(rfe=0)" if k == 0 else f"−{k} from last\n(rfe={k})" for k in ranks]
-    bar_colors = ["#1565C0" if k == 0 else "#90CAF9" for k in ranks]
-
-    fig, ax = plt.subplots(figsize=(8, 4))
-    bars = ax.bar(range(len(ranks)), counts, color=bar_colors, edgecolor="white", linewidth=0.8)
-
-    for bar, c, k in zip(bars, counts, ranks):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1,
-                f"{c}\n({100*c/n_found:.0f}%)", ha="center", va="bottom", fontsize=9)
-
-    ax.set_xticks(range(len(ranks)))
-    ax.set_xticklabels(labels, fontsize=9)
-    ax.set_xlabel("Position of gold relation step (rank from end of chain)", fontsize=10)
-    ax.set_ylabel("Number of questions", fontsize=10)
-    ax.set_title(
-        "Q1: Where is the gold relation step in the ORIGINAL chain?\n"
-        f"(n={n_found} questions where gold step is detectable out of {n_total} total)",
-        fontsize=11, fontweight="bold", pad=12,
-    )
-    ax.spines[["top", "right"]].set_visible(False)
-    ax.set_ylim(0, max(counts) * 1.25)
-
-    n_last = counter.get(0, 0)
-    ax.text(0.98, 0.97,
-            f"{100*n_last/n_found:.0f}% of detectable cases\nhave gold at the last step",
-            ha="right", va="top", transform=ax.transAxes,
-            fontsize=9, bbox=dict(boxstyle="round,pad=0.3", fc="#E3F2FD", ec="#1565C0", lw=1))
-
-    fig.tight_layout()
-    save(fig, "fig1_q1_original_gold_position.png")
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# FIGURE 2 — Q2: Does the rewrite keep the gold relation at the same position?
-# ══════════════════════════════════════════════════════════════════════════════
-
-def fig_q2_order_preservation_overview(records):
-    """
-    Donut chart of order-class distribution across all 291 pairs.
-    """
-    n_total = len(records)
-    counts  = {oc: sum(1 for r in records if r["order_class"] == oc)
-               for oc in ORDER_CLASSES}
-
-    sizes  = [counts[oc] for oc in ORDER_CLASSES]
-    colors = [ORDER_COLOR[oc] for oc in ORDER_CLASSES]
-    explode= [0.04] * len(ORDER_CLASSES)
-
-    nice_labels = [
-        f"Gold at last step\nin BOTH ({counts['LAST_BOTH']})",
-        f"Gold shifts to\nnon-last in rewrite ({counts['LAST_ORIG_ONLY']})",
-        f"Gold not last\nin either ({counts['NOT_LAST_BOTH']})",
-        f"Gold VANISHES\nfrom rewrite ({counts['MISSING_REW']})",
-        f"Gold only in\nrewrite ({counts['MISSING_ORIG']})",
-        f"Gold absent\nfrom both ({counts['MISSING_BOTH']})",
+    # stacking order (bottom to top): both_wrong, orig_better, rew_better, both_correct
+    stacks = [
+        ("BOTH_WRONG",   "#9E9E9E", "Both wrong\n(orig✗ rew✗)"),
+        ("ORIG_BETTER",  "#F44336", "Degraded\n(orig✓ rew✗)"),
+        ("REW_BETTER",   "#4CAF50", "Improved\n(orig✗ rew✓)"),
+        ("BOTH_CORRECT", "#2196F3", "Both correct\n(orig✓ rew✓)"),
     ]
+    # contribution to each bar (orig_bar, rew_bar)
+    contrib = {
+        "BOTH_WRONG":   (gc["BOTH_WRONG"],   gc["BOTH_WRONG"]),
+        "ORIG_BETTER":  (gc["ORIG_BETTER"],  0),
+        "REW_BETTER":   (0,                  gc["REW_BETTER"]),
+        "BOTH_CORRECT": (gc["BOTH_CORRECT"], gc["BOTH_CORRECT"]),
+    }
 
-    fig, ax = plt.subplots(figsize=(9, 6))
-    wedges, texts, autotexts = ax.pie(
-        sizes, labels=nice_labels, colors=colors, explode=explode,
-        autopct=lambda p: f"{p:.1f}%" if p > 1 else "",
-        pctdistance=0.78, startangle=140,
-        textprops=dict(fontsize=8.5),
+    fig, ax = plt.subplots(figsize=(5, 5.5))
+    bottoms = np.zeros(2)
+    for g, color, label in stacks:
+        vals = np.array(contrib[g])
+        bars = ax.bar([0, 1], vals, bottom=bottoms, color=color, label=label,
+                      edgecolor="white", linewidth=0.8, width=0.5)
+        for bar, v, bot in zip(bars, vals, bottoms):
+            if v >= 8:
+                ax.text(bar.get_x() + bar.get_width() / 2, bot + v / 2,
+                        str(v), ha="center", va="center",
+                        fontsize=9, fontweight="bold", color="white")
+        bottoms += vals
+
+    for xi, acc in zip([0, 1], [n_orig_ok, n_rew_ok]):
+        ax.text(xi, n + 5, f"{100*acc/n:.1f}%", ha="center", va="bottom",
+                fontsize=12, fontweight="bold")
+
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels(["Original", "Rewrite"], fontsize=11)
+    ax.set_ylabel("Number of pairs (n=291)", fontsize=10)
+    ax.set_ylim(0, n * 1.15)
+    ax.legend(fontsize=8, loc="lower right", framealpha=0.9)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.set_title("Overall Accuracy: Original vs Rewrite", fontsize=11, fontweight="bold")
+    fig.tight_layout()
+    save_fig(fig, "fig1_overall_accuracy.png")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Fig 2  —  Q1 selectivity: does rewrite Q1 retrieve the correct bridge entity?
+# ══════════════════════════════════════════════════════════════════════════════
+
+def fig_q1_selectivity(records):
+    """
+    Left  — distribution of Q1 outcome classes (pie)
+    Right — accuracy rate for each class (bar)
+    """
+    classes = [
+        ("Q1_CORRECT",           "#2196F3", "Q1 retrieves\ncorrect bridge entity"),
+        ("Q1_WRONG_RECOVERED",   "#4CAF50", "Q1 wrong, correct entity\nfound & used later"),
+        ("Q1_WRONG_FOUND_NOT_USED", "#FF9800", "Q1 wrong, correct entity\nfound but not used"),
+        ("Q1_WRONG_NOT_FOUND",   "#F44336", "Q1 wrong, correct entity\nnever found"),
+        ("BRIDGE_UNKNOWN",       "#9E9E9E", "Bridge entity\nnot identified"),
+    ]
+    counts = {c: sum(1 for r in records if r["q1_class"] == c) for c, _, _ in classes}
+    n = len(records)
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+
+    # ── Left: pie ─────────────────────────────────────────────────────────────
+    ax = axes[0]
+    sizes  = [counts[c] for c, _, _ in classes]
+    colors = [col for _, col, _ in classes]
+    labels = [f"{lbl}\n({counts[c]})" for c, _, lbl in classes]
+    wedges, texts, autos = ax.pie(
+        sizes, labels=labels, colors=colors, startangle=140,
+        autopct=lambda p: f"{p:.1f}%" if p > 2 else "",
+        pctdistance=0.78, textprops=dict(fontsize=8.5),
         wedgeprops=dict(linewidth=1.2, edgecolor="white"),
     )
-    for at in autotexts:
-        at.set_fontsize(8)
-        at.set_fontweight("bold")
-        at.set_color("white")
-
-    # draw hole
+    for at in autos:
+        at.set_fontsize(8); at.set_fontweight("bold"); at.set_color("white")
     circle = plt.Circle((0, 0), 0.45, color="white")
     ax.add_patch(circle)
-    ax.text(0, 0, f"n={n_total}", ha="center", va="center",
-            fontsize=12, fontweight="bold", color="#333")
+    ax.text(0, 0, f"n={n}", ha="center", va="center", fontsize=11, fontweight="bold")
+    ax.set_title("Q1: Does rewrite Q1 retrieve\nthe correct bridge entity?",
+                 fontsize=10, fontweight="bold")
 
-    ax.set_title(
-        "Q2: Does the rewrite preserve the gold relation position?\n"
-        "Distribution of order-preservation class across 291 pairs",
-        fontsize=11, fontweight="bold", pad=16,
+    # ── Right: accuracy bar per class ─────────────────────────────────────────
+    ax2 = axes[1]
+    class_keys = [c for c, _, _ in classes if counts[c] > 0]
+    class_lbls = [lbl for c, _, lbl in classes if counts[c] > 0]
+    orig_acc   = [100 * sum(1 for r in records if r["q1_class"] == c and r["orig_ok"]) / counts[c]
+                  for c in class_keys]
+    rew_acc    = [100 * sum(1 for r in records if r["q1_class"] == c and r["rew_ok"])  / counts[c]
+                  for c in class_keys]
+    bar_colors = [col for c, col, _ in classes if counts[c] > 0]
+
+    y = np.arange(len(class_keys))
+    h = 0.32
+    b1 = ax2.barh(y + h/2, orig_acc, h, label="Original", color="#455A64", alpha=0.85)
+    b2 = ax2.barh(y - h/2, rew_acc,  h, label="Rewrite",  color=bar_colors, alpha=0.9)
+
+    for bar, v in zip(list(b1) + list(b2), orig_acc + rew_acc):
+        ax2.text(bar.get_width() + 0.8, bar.get_y() + bar.get_height() / 2,
+                 f"{v:.0f}%", va="center", fontsize=8.5)
+
+    ax2.set_yticks(y)
+    ax2.set_yticklabels([f"{lbl}\n(n={counts[c]})" for c, lbl in zip(class_keys, class_lbls)],
+                        fontsize=8.5)
+    ax2.set_xlabel("Accuracy %", fontsize=10)
+    ax2.set_xlim(0, 115)
+    ax2.axvline(50, color="#ddd", lw=1, ls="--")
+    ax2.legend(fontsize=9)
+    ax2.spines[["top", "right"]].set_visible(False)
+    ax2.set_title("Accuracy (orig vs rewrite)\nby Q1 outcome class",
+                  fontsize=10, fontweight="bold")
+
+    fig.suptitle("Effect of Rewrite Q1 Selectivity on Bridge Entity Retrieval and Accuracy",
+                 fontsize=11, fontweight="bold", y=1.01)
+    fig.tight_layout()
+    save_fig(fig, "fig2_q1_selectivity.png")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Fig 3  —  Bridge entity: correct vs wrong fed to the gold step
+# ══════════════════════════════════════════════════════════════════════════════
+
+def fig_bridge_entity_impact(records):
+    """
+    Two scenarios where bridge_orig is known:
+      bridge_correct=True  vs  bridge_correct=False
+    Show accuracy and gold-step answer correctness for each.
+    """
+    known = [r for r in records if r["bridge_orig"] is not None and r["gs_rew"] is not None]
+    correct_bridge = [r for r in known if r["gold_step_correct_bridge"]]
+    wrong_bridge   = [r for r in known if not r["gold_step_correct_bridge"]]
+    n_c, n_w = len(correct_bridge), len(wrong_bridge)
+
+    def rates(lst):
+        n = len(lst)
+        if n == 0:
+            return 0, 0, 0
+        rew_ok      = sum(1 for r in lst if r["rew_ok"])
+        gold_in_step= sum(1 for r in lst if r["gold_found_rew"])
+        deg         = sum(1 for r in lst if r["orig_ok"] and not r["rew_ok"])
+        orig_ok_n   = sum(1 for r in lst if r["orig_ok"])
+        return (100*rew_ok/n, 100*gold_in_step/n,
+                100*deg/orig_ok_n if orig_ok_n else 0)
+
+    rc_acc, rc_gold, rc_deg = rates(correct_bridge)
+    rw_acc, rw_gold, rw_deg = rates(wrong_bridge)
+
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4.5))
+    metrics  = ["Rewrite accuracy %", "Gold answer in step %", "Degradation rate %"]
+    c_vals   = [rc_acc, rc_gold, rc_deg]
+    w_vals   = [rw_acc, rw_gold, rw_deg]
+    colors_c = ["#2196F3", "#4CAF50", "#F44336"]
+
+    for ax, metric, cv, wv, col in zip(axes, metrics, c_vals, w_vals, colors_c):
+        bars = ax.bar([0, 1], [cv, wv], color=[col, "#EF9A9A"], edgecolor="white",
+                      linewidth=0.8, width=0.5)
+        for bar, v in zip(bars, [cv, wv]):
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1.5,
+                    f"{v:.1f}%", ha="center", va="bottom", fontsize=11, fontweight="bold")
+        ax.set_xticks([0, 1])
+        ax.set_xticklabels([
+            f"Correct bridge\n(n={n_c})",
+            f"Wrong bridge\n(n={n_w})",
+        ], fontsize=9)
+        ax.set_ylabel("%", fontsize=10)
+        ax.set_ylim(0, 115)
+        ax.set_title(metric, fontsize=10, fontweight="bold")
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.axhline(50, color="#ddd", lw=1, ls="--")
+
+    fig.suptitle(
+        "When the Wrong Bridge Entity Is Fed to the Gold Relation Step,\n"
+        "Accuracy Collapses",
+        fontsize=11, fontweight="bold",
     )
     fig.tight_layout()
-    save(fig, "fig2_q2_order_preservation_donut.png")
+    save_fig(fig, "fig3_bridge_entity_impact.png")
 
 
-def fig_q2_position_shift_detail(records):
+# ══════════════════════════════════════════════════════════════════════════════
+# Fig 4  —  Where in the rewrite chain does the correct bridge entity appear?
+# ══════════════════════════════════════════════════════════════════════════════
+
+def fig_bridge_recovery_position(records):
     """
-    For cases where gold IS found in both chains, compare
-    original vs rewrite rank-from-end side-by-side.
+    For pairs where the correct bridge entity IS found somewhere in the rewrite:
+    show at which position (0-indexed) it first appears, and whether it was
+    actually used as input to the gold step.
     """
-    both_found = [r for r in records if r["found_orig"] and r["found_rew"]]
+    found = [r for r in records if r["first_correct_pos"] is not None]
+    pos_used     = [r for r in found if r["gold_step_correct_bridge"]]
+    pos_not_used = [r for r in found if not r["gold_step_correct_bridge"]]
 
-    # bin by rfe in original and rewrite
-    orig_rfes = Counter(r["orig_rfe"] for r in both_found)
-    rew_rfes  = Counter(r["rew_rfe"]  for r in both_found)
+    pos_counter_used     = Counter(r["first_correct_pos"] for r in pos_used)
+    pos_counter_not_used = Counter(r["first_correct_pos"] for r in pos_not_used)
+    all_pos = sorted(set(pos_counter_used) | set(pos_counter_not_used))
 
-    all_rfe = sorted(set(orig_rfes) | set(rew_rfes))
-    x = np.arange(len(all_rfe))
-    w = 0.35
-
-    fig, ax = plt.subplots(figsize=(8, 4.5))
-    b1 = ax.bar(x - w/2, [orig_rfes.get(k, 0) for k in all_rfe],
-                w, label="Original chain", color="#1565C0", alpha=0.85)
-    b2 = ax.bar(x + w/2, [rew_rfes.get(k, 0)  for k in all_rfe],
-                w, label="Rewrite chain",  color="#FB8C00", alpha=0.85)
+    fig, ax = plt.subplots(figsize=(7, 4))
+    x = np.arange(len(all_pos))
+    w = 0.38
+    b1 = ax.bar(x - w/2,
+                [pos_counter_used.get(p, 0)     for p in all_pos],
+                w, label="Correct bridge found & used as input to gold step",
+                color="#4CAF50", alpha=0.88)
+    b2 = ax.bar(x + w/2,
+                [pos_counter_not_used.get(p, 0) for p in all_pos],
+                w, label="Correct bridge found but NOT used as input to gold step",
+                color="#FF9800", alpha=0.88)
 
     for bar in list(b1) + list(b2):
         h = bar.get_height()
         if h > 0:
-            ax.text(bar.get_x() + bar.get_width()/2, h + 0.5,
-                    str(int(h)), ha="center", va="bottom", fontsize=8)
+            ax.text(bar.get_x() + bar.get_width() / 2, h + 0.3,
+                    str(int(h)), ha="center", va="bottom", fontsize=9)
 
     ax.set_xticks(x)
-    xlabels = ["last\n(rfe=0)" if k == 0 else f"−{k} from last\n(rfe={k})" for k in all_rfe]
-    ax.set_xticklabels(xlabels, fontsize=9)
-    ax.set_xlabel("Position of gold relation step (rank from end)", fontsize=10)
-    ax.set_ylabel("Number of questions", fontsize=10)
-    ax.set_title(
-        "Q2 (detail): How does the gold step position shift from original → rewrite?\n"
-        f"(n={len(both_found)} pairs where gold step is detectable in BOTH chains)",
-        fontsize=11, fontweight="bold", pad=12,
-    )
-    ax.legend(fontsize=9)
+    ax.set_xticklabels([f"Q{p+1}" for p in all_pos], fontsize=10)
+    ax.set_xlabel("Position in rewrite chain where correct bridge entity first appears", fontsize=10)
+    ax.set_ylabel("Number of pairs", fontsize=10)
+    ax.legend(fontsize=8.5, loc="upper right")
     ax.spines[["top", "right"]].set_visible(False)
-    ax.set_ylim(0, max(max(orig_rfes.values()), max(rew_rfes.values())) * 1.3)
-    fig.tight_layout()
-    save(fig, "fig2b_q2_position_shift.png")
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# FIGURE 3 — Q3: When position changes, does accuracy drop?
-# ══════════════════════════════════════════════════════════════════════════════
-
-def fig_q3_degradation_by_order_class(records):
-    """
-    Bar chart: degradation rate (orig✓ rew✗) per order class,
-    with stacked bar showing the full 4-group breakdown.
-    """
-    acc_group_order = ["BOTH_CORRECT", "ORIG_BETTER", "REW_BETTER", "BOTH_WRONG"]
-    acc_colors      = [COLORS[g] for g in acc_group_order]
-    acc_nice        = ["Both correct\n(orig✓ rew✓)", "Degraded\n(orig✓ rew✗)",
-                       "Improved\n(orig✗ rew✓)", "Both wrong\n(orig✗ rew✗)"]
-
-    oc_list   = ["LAST_BOTH", "LAST_ORIG_ONLY", "MISSING_REW", "MISSING_BOTH"]
-    oc_labels = [ORDER_LABELS[oc] for oc in oc_list]
-
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5.5))
-
-    # ── Left: stacked bar (absolute counts by acc group) ───────────────────
-    ax = axes[0]
-    bottoms = np.zeros(len(oc_list))
-    bars_by_group = {}
-    for ag, color in zip(acc_group_order, acc_colors):
-        vals = np.array([
-            sum(1 for r in records if r["order_class"] == oc and r["acc_group"] == ag)
-            for oc in oc_list
-        ])
-        b = ax.bar(range(len(oc_list)), vals, bottom=bottoms, color=color,
-                   label=ag, edgecolor="white", linewidth=0.8)
-        bars_by_group[ag] = (b, vals, bottoms.copy())
-        bottoms += vals
-
-    # label each bar segment if large enough
-    for ag, (b, vals, bots) in bars_by_group.items():
-        for i, (bar, v, bot) in enumerate(zip(b, vals, bots)):
-            if v >= 4:
-                ax.text(bar.get_x() + bar.get_width()/2, bot + v/2,
-                        str(v), ha="center", va="center",
-                        fontsize=8, fontweight="bold", color="white")
-
-    ax.set_xticks(range(len(oc_list)))
-    ax.set_xticklabels(oc_labels, fontsize=8.5)
-    ax.set_ylabel("Number of question pairs", fontsize=10)
-    ax.set_title("Accuracy outcome breakdown\nper order-preservation class", fontsize=10, fontweight="bold")
-    ax.legend(labels=acc_nice, fontsize=7.5, loc="upper right",
-              framealpha=0.9, ncol=2)
-    ax.spines[["top", "right"]].set_visible(False)
-
-    # ── Right: degradation rate (orig✓ rew✗ / all orig✓ in class) ─────────
-    ax2 = axes[1]
-    degrade_rates = []
-    degrade_ns    = []
-    bar_colors2   = []
-    for oc in oc_list:
-        subset   = [r for r in records if r["order_class"] == oc]
-        orig_ok  = [r for r in subset if r["orig_ok"]]
-        degraded = [r for r in orig_ok if not r["rew_ok"]]
-        n_orig_ok = len(orig_ok)
-        n_deg     = len(degraded)
-        degrade_rates.append(100 * n_deg / n_orig_ok if n_orig_ok else 0)
-        degrade_ns.append((n_deg, n_orig_ok))
-        bar_colors2.append(ORDER_COLOR[oc])
-
-    bars2 = ax2.bar(range(len(oc_list)), degrade_rates,
-                    color=bar_colors2, edgecolor="white", linewidth=0.8, alpha=0.9)
-    for bar, rate, (nd, no) in zip(bars2, degrade_rates, degrade_ns):
-        if no > 0:
-            ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.5,
-                     f"{rate:.0f}%\n({nd}/{no})",
-                     ha="center", va="bottom", fontsize=9, fontweight="bold")
-
-    ax2.set_xticks(range(len(oc_list)))
-    ax2.set_xticklabels(oc_labels, fontsize=8.5)
-    ax2.set_ylabel("Degradation rate  (orig✓ → rew✗) %", fontsize=10)
-    ax2.set_ylim(0, 105)
-    ax2.axhline(20, color="#ccc", lw=1, ls="--")
-    ax2.axhline(50, color="#ccc", lw=1, ls="--")
-    ax2.axhline(80, color="#ccc", lw=1, ls="--")
-    ax2.set_title("Q3: How often does accuracy degrade\nper order-preservation class?",
-                  fontsize=10, fontweight="bold")
-    ax2.spines[["top", "right"]].set_visible(False)
-
-    fig.suptitle(
-        "Effect of Gold-Relation Position Change on Final Answer Accuracy",
-        fontsize=12, fontweight="bold", y=1.01,
-    )
-    fig.tight_layout()
-    save(fig, "fig3_q3_degradation_by_order_class.png")
-
-
-def fig_q3_heatmap(records):
-    """
-    Heatmap: order class (rows) × accuracy group (cols), counts + % of row.
-    """
-    oc_list  = ["LAST_BOTH", "LAST_ORIG_ONLY", "MISSING_REW", "MISSING_ORIG", "MISSING_BOTH"]
-    ag_list  = ["BOTH_CORRECT", "ORIG_BETTER", "REW_BETTER", "BOTH_WRONG"]
-    ag_nice  = ["Both correct\n(orig✓ rew✓)", "Degraded\n(orig✓ rew✗)",
-                "Improved\n(orig✗ rew✓)", "Both wrong\n(orig✗ rew✗)"]
-    oc_nice  = [ORDER_LABELS[oc] for oc in oc_list]
-
-    matrix = np.zeros((len(oc_list), len(ag_list)))
-    for i, oc in enumerate(oc_list):
-        for j, ag in enumerate(ag_list):
-            matrix[i, j] = sum(1 for r in records
-                               if r["order_class"] == oc and r["acc_group"] == ag)
-
-    row_sums = matrix.sum(axis=1, keepdims=True)
-    pct_matrix = np.where(row_sums > 0, 100 * matrix / row_sums, 0)
-
-    fig, ax = plt.subplots(figsize=(9, 5))
-    im = ax.imshow(pct_matrix, cmap="RdYlGn_r", vmin=0, vmax=100, aspect="auto")
-
-    ax.set_xticks(range(len(ag_list)))
-    ax.set_xticklabels(ag_nice, fontsize=9)
-    ax.set_yticks(range(len(oc_list)))
-    ax.set_yticklabels(oc_nice, fontsize=9)
-
-    for i in range(len(oc_list)):
-        for j in range(len(ag_list)):
-            n   = int(matrix[i, j])
-            pct = pct_matrix[i, j]
-            color = "white" if pct > 55 else "#222"
-            ax.text(j, i, f"{n}\n({pct:.0f}%)",
-                    ha="center", va="center", fontsize=8.5,
-                    color=color, fontweight="bold")
-
-    cbar = fig.colorbar(im, ax=ax, pad=0.02)
-    cbar.set_label("% of row total", fontsize=9)
-
     ax.set_title(
-        "Heatmap: order-preservation class × accuracy outcome\n"
-        "Each cell shows count and % of that order class",
-        fontsize=11, fontweight="bold", pad=12,
+        "Where the Correct Bridge Entity First Appears in the Rewrite Chain\n"
+        "and Whether It Gets Used as Input to the Gold Relation Step",
+        fontsize=10, fontweight="bold",
     )
-    ax.xaxis.tick_top()
-    ax.xaxis.set_label_position("top")
     fig.tight_layout()
-    save(fig, "fig4_heatmap_order_vs_accuracy.png")
+    save_fig(fig, "fig4_bridge_recovery_position.png")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# FIGURE 4 — Summary: the "funnel" from order change to accuracy drop
+# Fig 5  —  Summary: three-step causal chain
 # ══════════════════════════════════════════════════════════════════════════════
 
-def fig_summary_funnel(records):
+def fig_summary(records):
     """
-    Three-row visual summary:
-      row 1: how many pairs had gold at last step in original
-      row 2: of those, how many preserved that position in the rewrite
-      row 3: of each class, how many degraded
+    Three panels: (A) Q1 correctness → (B) bridge entity to gold step → (C) accuracy
     """
     n = len(records)
-    n_orig_last      = sum(1 for r in records if r["at_last_orig"])
-    n_orig_not_last  = sum(1 for r in records if r["found_orig"] and not r["at_last_orig"])
-    n_orig_miss      = sum(1 for r in records if not r["found_orig"])
+    n_q1_ok    = sum(1 for r in records if r["q1_class"] == "Q1_CORRECT")
+    n_q1_wrong = sum(1 for r in records if r["q1_class"].startswith("Q1_WRONG"))
+    n_unknown  = sum(1 for r in records if r["q1_class"] == "BRIDGE_UNKNOWN")
 
-    # From n_orig_last: how many preserved (LAST_BOTH) vs shifted (LAST_ORIG_ONLY) vs other
-    last_both     = [r for r in records if r["order_class"] == "LAST_BOTH"]
-    last_orig_only= [r for r in records if r["order_class"] == "LAST_ORIG_ONLY"]
-    miss_rew      = [r for r in records if r["order_class"] == "MISSING_REW"]
+    known = [r for r in records if r["bridge_orig"] is not None and r["gs_rew"] is not None]
+    n_cb = sum(1 for r in known if r["gold_step_correct_bridge"])
+    n_wb = sum(1 for r in known if not r["gold_step_correct_bridge"])
 
-    def deg_rate(lst):
-        orig_ok = [r for r in lst if r["orig_ok"]]
-        if not orig_ok: return 0, 0, 0
-        deg = [r for r in orig_ok if not r["rew_ok"]]
-        return len(deg), len(orig_ok), 100*len(deg)/len(orig_ok)
+    def rew_acc(lst):
+        return 100 * sum(1 for r in lst if r["rew_ok"]) / len(lst) if lst else 0
 
-    d_lb,  o_lb,  r_lb  = deg_rate(last_both)
-    d_lo,  o_lo,  r_lo  = deg_rate(last_orig_only)
-    d_mr,  o_mr,  r_mr  = deg_rate(miss_rew)
+    def deg(lst):
+        o = [r for r in lst if r["orig_ok"]]
+        return 100 * sum(1 for r in o if not r["rew_ok"]) / len(o) if o else 0
 
-    fig, axes = plt.subplots(1, 3, figsize=(14, 5), gridspec_kw={"wspace": 0.45})
+    fig, axes = plt.subplots(1, 3, figsize=(13, 5), gridspec_kw={"wspace": 0.5})
 
-    # ── Panel A: original gold position ────────────────────────────────────
+    # ── A: Q1 correct vs wrong ─────────────────────────────────────────────
     ax = axes[0]
-    vals   = [n_orig_last, n_orig_not_last, n_orig_miss]
-    clrs   = ["#1565C0", "#90CAF9", "#CFD8DC"]
-    lbls   = [f"Last step\n({n_orig_last})", f"Not last step\n({n_orig_not_last})",
-              f"Not detectable\n({n_orig_miss})"]
-    ax.pie(vals, labels=lbls, colors=clrs, startangle=90,
+    vals   = [n_q1_ok, n_q1_wrong, n_unknown]
+    colors = ["#2196F3", "#F44336", "#9E9E9E"]
+    labels = [f"Q1 correct\n({n_q1_ok})", f"Q1 wrong\n({n_q1_wrong})",
+              f"Unknown\n({n_unknown})"]
+    ax.pie(vals, labels=labels, colors=colors, startangle=90,
            autopct=lambda p: f"{p:.0f}%" if p > 3 else "",
            pctdistance=0.75, textprops=dict(fontsize=9),
            wedgeprops=dict(linewidth=1.2, edgecolor="white"))
     circle = plt.Circle((0, 0), 0.45, color="white")
     ax.add_patch(circle)
-    ax.set_title("A: Where is the gold\nstep in ORIGINAL?", fontsize=10, fontweight="bold")
+    ax.set_title("A: Does rewrite Q1\nfind correct bridge entity?",
+                 fontsize=10, fontweight="bold")
 
-    # ── Panel B: preservation for last-step originals ───────────────────────
+    # ── B: bridge entity fed to gold step ──────────────────────────────────
     ax = axes[1]
-    vals2  = [len(last_both), len(last_orig_only), len(miss_rew),
-              n - len(last_both) - len(last_orig_only) - len(miss_rew)]
-    clrs2  = [ORDER_COLOR["LAST_BOTH"], ORDER_COLOR["LAST_ORIG_ONLY"],
-              ORDER_COLOR["MISSING_REW"], "#CFD8DC"]
-    lbls2  = [f"Preserved\nat last step\n({len(last_both)})",
-              f"Shifted to\nnon-last\n({len(last_orig_only)})",
-              f"Gold vanished\nfrom rewrite\n({len(miss_rew)})",
-              f"Other\n({vals2[3]})"]
-    ax.pie(vals2, labels=lbls2, colors=clrs2, startangle=90,
-           autopct=lambda p: f"{p:.0f}%" if p > 2 else "",
-           pctdistance=0.75, textprops=dict(fontsize=9),
+    ax.pie([n_cb, n_wb],
+           labels=[f"Correct bridge\nfed to gold step\n({n_cb})",
+                   f"Wrong bridge\nfed to gold step\n({n_wb})"],
+           colors=["#4CAF50", "#F44336"], startangle=90,
+           autopct=lambda p: f"{p:.0f}%",
+           pctdistance=0.72, textprops=dict(fontsize=9),
            wedgeprops=dict(linewidth=1.2, edgecolor="white"))
     circle2 = plt.Circle((0, 0), 0.45, color="white")
     ax.add_patch(circle2)
-    ax.set_title("B: Does the rewrite preserve\ngold position?", fontsize=10, fontweight="bold")
-
-    # ── Panel C: degradation rates ─────────────────────────────────────────
-    ax = axes[2]
-    oc_names   = ["Preserved\n(LAST_BOTH)", "Shifted\n(LAST_ORIG_ONLY)", "Vanished\n(MISSING_REW)"]
-    rates      = [r_lb, r_lo, r_mr]
-    ns_label   = [f"{d}/{o}" for d, o, _ in [(d_lb, o_lb, r_lb), (d_lo, o_lo, r_lo), (d_mr, o_mr, r_mr)]]
-    bar_clrs   = [ORDER_COLOR["LAST_BOTH"], ORDER_COLOR["LAST_ORIG_ONLY"], ORDER_COLOR["MISSING_REW"]]
-
-    bars = ax.bar(range(3), rates, color=bar_clrs, edgecolor="white",
-                  linewidth=0.8, alpha=0.9, width=0.5)
-    for bar, rate, ns in zip(bars, rates, ns_label):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 2,
-                f"{rate:.0f}%\n({ns} orig✓ cases)",
-                ha="center", va="bottom", fontsize=9, fontweight="bold")
-
-    ax.set_xticks(range(3))
-    ax.set_xticklabels(oc_names, fontsize=9)
-    ax.set_ylabel("Degradation rate  (orig✓ → rew✗) %", fontsize=9)
-    ax.set_ylim(0, 108)
-    ax.axhline(50, color="#ccc", lw=1, ls="--")
-    ax.set_title("C: How often does accuracy drop\nfor each preservation class?",
+    ax.set_title("B: Which entity is fed to\nthe gold relation step?",
                  fontsize=10, fontweight="bold")
+
+    # ── C: rewrite accuracy and degradation by bridge correctness ──────────
+    ax = axes[2]
+    cb_recs = [r for r in known if r["gold_step_correct_bridge"]]
+    wb_recs = [r for r in known if not r["gold_step_correct_bridge"]]
+
+    metric_vals = {
+        "Rewrite\naccuracy":   [rew_acc(cb_recs), rew_acc(wb_recs)],
+        "Degradation\nrate":   [deg(cb_recs),     deg(wb_recs)],
+    }
+    x = np.arange(2)
+    width = 0.32
+    offsets = [-width / 2, width / 2]
+    m_colors = ["#2196F3", "#F44336"]
+    for (metric, vals), offset, mc in zip(metric_vals.items(), offsets, m_colors):
+        bars = ax.bar(x + offset, vals, width, label=metric, color=mc, alpha=0.88,
+                      edgecolor="white")
+        for bar, v in zip(bars, vals):
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1.5,
+                    f"{v:.0f}%", ha="center", va="bottom", fontsize=9.5, fontweight="bold")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(["Correct bridge\nfed to gold step",
+                         "Wrong bridge\nfed to gold step"], fontsize=9)
+    ax.set_ylabel("%", fontsize=10)
+    ax.set_ylim(0, 115)
+    ax.axhline(50, color="#ddd", lw=1, ls="--")
+    ax.legend(fontsize=9, loc="upper right")
     ax.spines[["top", "right"]].set_visible(False)
+    ax.set_title("C: Accuracy outcome by\nbridge entity correctness",
+                 fontsize=10, fontweight="bold")
 
     fig.suptitle(
-        "Summary: From Gold-Relation Position Change to Accuracy Degradation",
+        "Summary: Q1 Selectivity → Bridge Entity → Accuracy",
         fontsize=12, fontweight="bold", y=1.01,
     )
-    save(fig, "fig5_summary_funnel.png")
+    save_fig(fig, "fig5_summary.png")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# PRINTED REPORT
-# ══════════════════════════════════════════════════════════════════════════════
+# ── printed report ────────────────────────────────────────────────────────────
 
-SEP  = "=" * 76
-SEP2 = "-" * 76
-W    = 76
-
-def pct_str(n, total):
-    return f"{100*n/total:.1f}%" if total else "n/a"
+SEP  = "=" * 74
+SEP2 = "-" * 74
 
 
-def print_task_definition():
-    print(SEP)
-    print("  GOLD-RELATION ORDER ANALYSIS")
-    print(SEP)
-    print("""
-  TASK DEFINITION
-  ───────────────
-  Dataset : 291 paired questions from 2WikiMultiHop
-  Model   : Answers by decomposing into sub-questions Q1→Q2→…→Qn,
-            answering each with a retriever, then combining into a
-            final prediction.
-
-  Two versions of each question:
-    ORIGINAL  — the question as written
-    REWRITE   — the same question with extra relations added
-                (e.g. citizenship, birth date, award) as constraints
-
-  Example:
-    Original:  Who is the child of the director of Mukhyamantri (1996)?
-      Q1: "Who directed Mukhyamantri?"  → Anjan Choudhury
-      Q2: "Who is the child of #1?"     → Chumki Chowdhury  ← GOLD
-
-    Rewrite:   Who is the child of the person born Nov 25 1944 with
-               citizenship in British Raj who directed Mukhyamantri?
-      Q1: "Who has citizenship in British Raj?" → Jawaharlal Nehru (WRONG)
-      Q2: "Who directed Mukhyamantri?"          → Anjan Choudhury
-      Q3: "Is #2 the same as #1?"               → no
-      Q4: "Who is the child of #3?"             → Frances Bean Cobain (WRONG)
-      Prediction: Frances Bean Cobain  ✗  Gold: Chumki Chowdhury
-
-  GOLD RELATION STEP
-    The sub-question whose intermediate answer = gold final answer.
-    In the example above:  Q2 in original, (not found) in rewrite.
-
-  RESEARCH QUESTIONS
-    Q1. In the original chain, where does the gold relation step appear?
-    Q2. When the rewrite adds extra relations, does the model keep the
-        gold step at the same position in the chain?
-    Q3. When the position changes (or the step disappears), does the
-        final answer accuracy degrade?
-""")
+def pct(n, d):
+    return f"{100*n/d:.1f}%" if d else "n/a"
 
 
-def print_q1(records):
-    print(SEP)
-    print("  Q1: In the original chain, where is the gold relation step?")
-    print(SEP2)
-
-    found  = [r for r in records if r["found_orig"]]
-    missed = [r for r in records if not r["found_orig"]]
-    n_total = len(records)
-
-    rfe_counter = Counter(r["orig_rfe"] for r in found)
-    n_last    = rfe_counter.get(0, 0)
-    n_nonlast = len(found) - n_last
-
-    print(f"""
-  Of {n_total} total pairs:
-    ✓ Gold step detectable in original intermediates : {len(found):>3}  ({pct_str(len(found), n_total)})
-    ✗ Gold step NOT detectable (hard / format issue) : {len(missed):>3}  ({pct_str(len(missed), n_total)})
-
-  Among detectable cases ({len(found)} questions):
-    At the LAST sub-question (rfe=0) : {n_last:>3}  ({pct_str(n_last, len(found))})
-    Not at last sub-question          : {n_nonlast:>3}  ({pct_str(n_nonlast, len(found))})
-
-  Position breakdown (rank from end, 0 = last):""")
-
-    for rfe in sorted(rfe_counter):
-        c = rfe_counter[rfe]
-        label = "last step   ← standard multi-hop endpoint" if rfe == 0 else f"{rfe} step(s) before last"
-        bar = "█" * int(20 * c / len(found))
-        print(f"    rfe={rfe}  {label:<40}  {c:>3}  ({pct_str(c, len(found)):>6})  {bar}")
-
-    print(f"""
-  ANSWER: The gold relation step is at the last sub-question in
-  {pct_str(n_last, len(found))} of detectable cases.  The decomposition model
-  consistently places the final answer-producing hop at the end of
-  the chain in original questions.
-""")
-
-
-def print_q2(records):
-    print(SEP)
-    print("  Q2: Does the rewrite keep the gold relation at the same position?")
-    print(SEP2)
-
+def print_report(records):
     n = len(records)
-    counts = Counter(r["order_class"] for r in records)
+    n_orig_ok = sum(1 for r in records if r["orig_ok"])
+    n_rew_ok  = sum(1 for r in records if r["rew_ok"])
+    gc = Counter(r["acc_group"] for r in records)
 
-    CLASS_DESCS = {
-        "LAST_BOTH":      "Gold at last step in BOTH original and rewrite       (order fully preserved)",
-        "LAST_ORIG_ONLY": "Gold at last step in original, NOT last in rewrite   (order shifted)",
-        "NOT_LAST_BOTH":  "Gold not at last step in either chain                (comparison / date Qs)",
-        "MISSING_REW":    "Gold found in original, VANISHES from rewrite chain  (chain broken)",
-        "MISSING_ORIG":   "Gold found in rewrite only                           (rewrite improves coverage)",
-        "MISSING_BOTH":   "Gold absent from both chains                         (intrinsically hard Qs)",
-    }
+    print(SEP)
+    print("  GOLD-RELATION ORDER ANALYSIS — 2WikiMultiHop (n=291 pairs)")
+    print(SEP)
 
+    # ── Overall ────────────────────────────────────────────────────────────────
+    print("""
+  OVERALL ACCURACY
+  ─────────────────────────────────────────────────────────────────────""")
+    print(f"  Original:  {n_orig_ok}/{n}  ({pct(n_orig_ok, n)})")
+    print(f"  Rewrite:   {n_rew_ok}/{n}  ({pct(n_rew_ok, n)})   Δ = {100*(n_rew_ok-n_orig_ok)/n:+.1f} pp")
+    print(f"""
+  Outcome breakdown:
+    Both correct   (orig✓ rew✓) : {gc['BOTH_CORRECT']:>4}  ({pct(gc['BOTH_CORRECT'], n)})
+    Degraded       (orig✓ rew✗) : {gc['ORIG_BETTER']:>4}  ({pct(gc['ORIG_BETTER'], n)})
+    Improved       (orig✗ rew✓) : {gc['REW_BETTER']:>4}  ({pct(gc['REW_BETTER'], n)})
+    Both wrong     (orig✗ rew✗) : {gc['BOTH_WRONG']:>4}  ({pct(gc['BOTH_WRONG'], n)})
+""")
+
+    # ── Q1: does rewrite Q1 retrieve the correct bridge entity? ────────────────
+    print(SEP)
+    print("  Q1: Does rewrite Q1 retrieve the correct bridge entity?")
+    print(SEP2)
+
+    classes = [
+        ("Q1_CORRECT",            "Q1 retrieves correct bridge entity"),
+        ("Q1_WRONG_RECOVERED",    "Q1 wrong, correct entity found & used by gold step"),
+        ("Q1_WRONG_FOUND_NOT_USED","Q1 wrong, correct entity found but NOT used by gold step"),
+        ("Q1_WRONG_NOT_FOUND",    "Q1 wrong, correct entity never found in rewrite"),
+        ("BRIDGE_UNKNOWN",        "Bridge entity not identifiable"),
+    ]
+    qc = Counter(r["q1_class"] for r in records)
+
+    print(f"\n  {'Class':<35}  {'n':>4}  {'%':>6}  {'rew acc':>8}  {'degrade rate':>13}")
+    print("  " + "-" * 72)
+    for cls, label in classes:
+        subset   = [r for r in records if r["q1_class"] == cls]
+        ns       = len(subset)
+        rew_ok   = sum(1 for r in subset if r["rew_ok"])
+        orig_ok  = sum(1 for r in subset if r["orig_ok"])
+        degraded = sum(1 for r in subset if r["orig_ok"] and not r["rew_ok"])
+        bar = "█" * int(18 * ns / n)
+        print(f"  {label:<35}  {ns:>4}  {pct(ns,n):>6}"
+              f"  {pct(rew_ok,ns):>8}  {degraded:>3}/{orig_ok:<3} ({pct(degraded, orig_ok):>6})")
+
+    n_q1_ok = qc["Q1_CORRECT"]
+    n_q1_wrong = sum(qc[c] for c in ["Q1_WRONG_RECOVERED","Q1_WRONG_FOUND_NOT_USED","Q1_WRONG_NOT_FOUND"])
+    print(f"""
+  Summary:
+    Rewrite Q1 retrieves correct bridge entity : {n_q1_ok:>4}  ({pct(n_q1_ok, n)})
+    Rewrite Q1 retrieves WRONG entity          : {n_q1_wrong:>4}  ({pct(n_q1_wrong, n)})
+""")
+
+    # ── Q2: when Q1 is wrong, where does the correct entity appear? ────────────
+    print(SEP)
+    print("  Q2: When Q1 is wrong, where does the correct bridge entity")
+    print("      appear in the rewrite chain, and does the gold step use it?")
+    print(SEP2)
+
+    wrong_q1 = [r for r in records if r["q1_class"].startswith("Q1_WRONG")]
+    found_later = [r for r in wrong_q1 if r["first_correct_pos"] is not None]
+    not_found   = [r for r in wrong_q1 if r["first_correct_pos"] is None]
+    used   = [r for r in found_later if r["gold_step_correct_bridge"]]
+    unused = [r for r in found_later if not r["gold_step_correct_bridge"]]
+
+    print(f"""
+  Of {len(wrong_q1)} pairs where Q1 retrieved the wrong entity:
+    Correct entity found somewhere in rewrite chain : {len(found_later):>4}  ({pct(len(found_later), len(wrong_q1))})
+      → and fed to the gold step (recovery)         : {len(used):>4}  ({pct(len(used), len(found_later))})
+      → but NOT fed to the gold step (ignored)      : {len(unused):>4}  ({pct(len(unused), len(found_later))})
+    Correct entity NEVER found in rewrite chain     : {len(not_found):>4}  ({pct(len(not_found), len(wrong_q1))})
+""")
+
+    pos_counter = Counter(r["first_correct_pos"] for r in found_later)
+    print("  Position (Q index) where correct entity first appears:")
+    for pos in sorted(pos_counter):
+        sub = [r for r in found_later if r["first_correct_pos"] == pos]
+        used_at_pos = sum(1 for r in sub if r["gold_step_correct_bridge"])
+        bar = "█" * pos_counter[pos]
+        print(f"    Q{pos+1} (position {pos}): {pos_counter[pos]:>3} pairs"
+              f"  ({pct(pos_counter[pos], len(wrong_q1))} of wrong-Q1 cases)"
+              f"  |  {used_at_pos} actually used by gold step")
     print()
-    for oc, desc in CLASS_DESCS.items():
-        c = counts.get(oc, 0)
-        bar = "█" * int(20 * c / n)
-        print(f"  {oc:<17}  {desc}")
-        print(f"  {'':17}  {c:>3} pairs  ({pct_str(c, n):>6})  {bar}")
+
+    # ── Q3: when wrong bridge entity is fed to gold step, accuracy collapses ───
+    print(SEP)
+    print("  Q3: When the wrong bridge entity is fed to the gold relation")
+    print("      step, does accuracy collapse?")
+    print(SEP2)
+
+    known = [r for r in records if r["bridge_orig"] is not None and r["gs_rew"] is not None]
+    cb    = [r for r in known if r["gold_step_correct_bridge"]]
+    wb    = [r for r in known if not r["gold_step_correct_bridge"]]
+
+    def summary(lst, label):
+        ns      = len(lst)
+        rew_ok  = sum(1 for r in lst if r["rew_ok"])
+        orig_ok = sum(1 for r in lst if r["orig_ok"])
+        deg     = sum(1 for r in lst if r["orig_ok"] and not r["rew_ok"])
+        gold_in = sum(1 for r in lst if r["gold_found_rew"])
+        print(f"  {label}  (n={ns})")
+        print(f"    Rewrite accuracy             : {pct(rew_ok,  ns)}")
+        print(f"    Gold answer found in step    : {pct(gold_in, ns)}")
+        print(f"    Degradation rate (orig✓→rew✗): {pct(deg, orig_ok)}")
         print()
 
-    last_both    = counts.get("LAST_BOTH", 0)
-    last_orig    = counts.get("LAST_ORIG_ONLY", 0)
-    miss_rew     = counts.get("MISSING_REW", 0)
-    miss_both    = counts.get("MISSING_BOTH", 0)
+    summary(cb, "Correct bridge entity fed to gold step")
+    summary(wb, "Wrong bridge entity fed to gold step  ")
 
-    print(f"""  ANSWER:
-    • In {pct_str(last_both, n)} of pairs the gold step stays at the last position
-      in both chains (order fully preserved).
-    • In {pct_str(last_orig, n)} the gold step shifts to a non-last position in the
-      rewrite (the model places the critical hop earlier in the chain).
-    • In {pct_str(miss_rew, n)} the gold answer completely VANISHES from the
-      rewrite's intermediate chain — the most alarming outcome.
-    • The remaining {pct_str(miss_both, n)} are intrinsically hard questions where
-      the gold step is undetectable in either chain.
+    print(f"""  Conclusion:
+    When the correct bridge entity reaches the gold relation step,
+    the rewrite succeeds at a rate comparable to the original.
+    When the wrong entity is fed to the gold step, the gold relation
+    produces the wrong answer and accuracy collapses.
+
+    The root cause is Q1 selectivity: low-selectivity constraints
+    (citizenship, birthdate, ...) retrieve the wrong bridge entity.
+    Even when the correct entity is found later in the chain, the
+    model usually does NOT reroute it as input to the gold step —
+    resulting in a wrong final answer anyway.
 """)
 
 
-def print_q3(records):
+def print_examples(records):
     print(SEP)
-    print("  Q3: When position changes, does accuracy degrade?")
-    print(SEP2)
-
-    oc_focus = [
-        ("LAST_BOTH",      "Gold preserved at last step"),
-        ("LAST_ORIG_ONLY", "Gold shifted to non-last in rewrite"),
-        ("MISSING_REW",    "Gold vanished from rewrite chain"),
-        ("MISSING_BOTH",   "Gold absent from both chains"),
-    ]
-
-    print(f"\n  {'Order class':<26}  {'n':>4}  {'orig✓':>6}  {'rew✓':>6}  "
-          f"{'both✓':>6}  {'DEGRADED':>10}  {'Degrade%':>9}")
-    print("  " + "-" * 75)
-
-    for oc, label in oc_focus:
-        subset   = [r for r in records if r["order_class"] == oc]
-        n_sub    = len(subset)
-        n_orig_ok= sum(1 for r in subset if r["orig_ok"])
-        n_rew_ok = sum(1 for r in subset if r["rew_ok"])
-        n_both   = sum(1 for r in subset if r["orig_ok"] and r["rew_ok"])
-        n_deg    = sum(1 for r in subset if r["orig_ok"] and not r["rew_ok"])
-        rate     = 100 * n_deg / n_orig_ok if n_orig_ok else 0
-        bar      = "█" * int(rate / 5)
-        print(f"  {label:<26}  {n_sub:>4}  {n_orig_ok:>6}  {n_rew_ok:>6}  "
-              f"{n_both:>6}  {n_deg:>5}/{n_orig_ok:<5}  {rate:>6.1f}%  {bar}")
-
-    print(f"""
-  ANSWER:
-    Order class        Degradation rate      Interpretation
-    ─────────────────────────────────────────────────────────────────────
-    LAST_BOTH          ~10%    Baseline. Even with order fully preserved,
-                               ~10% fail (synthesis / format errors).
-    LAST_ORIG_ONLY     ~24%    Shifting gold to a non-last position doubles
-                               the degradation rate — a mild but real signal.
-    MISSING_REW        ~84%    When the gold answer VANISHES from the rewrite
-                               chain, the model almost always gives the wrong
-                               final answer.  This is the dominant failure mode.
-    MISSING_BOTH       ~36%    Reflects the base difficulty of hard questions
-                               (both versions fail at similar rates).
-
-  CONCLUSION:
-    Gold-step position change alone (LAST_ORIG_ONLY) is a WEAK failure
-    signal — it doubles the degradation rate but still leaves 76% correct.
-
-    The decisive predictor is whether the gold answer is REACHABLE
-    anywhere in the rewrite chain.  When it is:  rew accuracy ≈ orig.
-    When it is NOT (MISSING_REW, 84% degrade):  the wrong-entity
-    cascade has already broken the reasoning chain upstream.
-
-    In practice this maps directly to the "V→no" gate from the earlier
-    order_experiment analysis: Q1 retrieved the wrong entity, so the
-    gold answer never appears in any intermediate step.
-""")
-
-
-def print_examples_section(records):
-    print(SEP)
-    print("  ILLUSTRATIVE EXAMPLES")
+    print("  EXAMPLES")
     print(SEP2)
 
     def show(r, title):
         print(f"\n  [{title}]")
-        print(f"  Original Q : {r['orig_question']}")
-        print(f"  Rewrite  Q : {r['rew_question'][:100]}{'...' if len(r['rew_question'])>100 else ''}")
-        print(f"  Gold       : {r['gold']}")
-
-        orig_labels = [q["label"] for q in r["orig_decomp"]]
+        print(f"  Question : {r['orig_question']}")
+        print(f"  Gold     : {r['gold']}")
+        print(f"  Bridge entity (Hop1 answer in original): {r['bridge_orig']}")
+        print()
         print(f"  Original chain ({r['n_orig']} steps):")
-        for j, q in enumerate(r["orig_decomp"]):
-            lbl  = q["label"]
-            txt  = q.get("text", "")[:65]
-            ans  = r["orig_inter"].get(lbl, "?")
-            mark = "  ← GOLD STEP" if lbl in r["gold_labels_orig"] else ""
+        for q in r["orig_decomp"]:
+            lbl = q["label"]; txt = q.get("text", "")[:65]
+            ans = r["orig_inter"].get(lbl, "")
+            gs  = r["gs_orig"]
+            tag = "  ← Hop1 (bridge)" if lbl == (gs["ref_label"] if gs else None) else \
+                  "  ← Hop2 / gold relation step" if gs and lbl == gs["label"] else ""
             print(f"    {lbl}: {txt}")
-            print(f"         → {str(ans)[:60]}{mark}")
-
-        rew_labels = [q["label"] for q in r["rew_decomp"]]
+            print(f"         → {str(ans)[:65]}{tag}")
+        print()
+        print(f"  Rewrite Q1 : {r['rew_q1_text'][:75]}")
+        print(f"               → {str(r['rew_q1_answer'])[:65]}")
+        print(f"  Q1 correct : {r['q1_correct']}   (expected bridge: {str(r['bridge_orig'])[:40]})")
+        print()
         print(f"  Rewrite chain ({r['n_rew']} steps):")
-        for j, q in enumerate(r["rew_decomp"]):
-            lbl  = q["label"]
-            txt  = q.get("text", "")[:65]
-            ans  = r["rew_inter"].get(lbl, "?")
-            mark = "  ← GOLD STEP" if lbl in r["gold_labels_rew"] else ""
+        gs_r = r["gs_rew"]
+        for q in r["rew_decomp"]:
+            lbl = q["label"]; txt = q.get("text", "")[:65]
+            ans = r["rew_inter"].get(lbl, "")
+            tag = "  ← gold relation step" if gs_r and lbl == gs_r["label"] else ""
+            fe  = "  [wrong bridge entity input]" if gs_r and lbl == gs_r["label"] and not r["gold_step_correct_bridge"] else ""
             print(f"    {lbl}: {txt}")
-            print(f"         → {str(ans)[:60]}{mark}")
-
+            print(f"         → {str(ans)[:65]}{tag}{fe}")
         print(f"  Outcome: orig={'✓' if r['orig_ok'] else '✗'}  rew={'✓' if r['rew_ok'] else '✗'}"
-              f"  |  order_class: {r['order_class']}")
+              f"   q1_class: {r['q1_class']}")
 
-    # Example 1: LAST_BOTH, ORIG_BETTER — gold preserved but still failed
+    # 1. Q1 correct → both succeed
     ex = next((r for r in records
-               if r["order_class"] == "LAST_BOTH" and r["acc_group"] == "ORIG_BETTER"), None)
+               if r["q1_class"] == "Q1_CORRECT" and r["acc_group"] == "BOTH_CORRECT"), None)
     if ex:
-        show(ex, "LAST_BOTH × ORIG_BETTER — gold preserved at last step, but rewrite still failed")
+        show(ex, "Q1_CORRECT — rewrite Q1 finds the right bridge entity, chain succeeds")
 
-    # Example 2: LAST_ORIG_ONLY, ORIG_BETTER — gold shifted, answer wrong
+    # 2. Q1 wrong → wrong bridge propagated → fails
     ex = next((r for r in records
-               if r["order_class"] == "LAST_ORIG_ONLY" and r["acc_group"] == "ORIG_BETTER"), None)
+               if r["q1_class"] == "Q1_WRONG_NOT_FOUND" and r["acc_group"] == "ORIG_BETTER"), None)
     if ex:
-        show(ex, "LAST_ORIG_ONLY × ORIG_BETTER — gold shifted to earlier step, answer wrong")
+        show(ex, "Q1_WRONG_NOT_FOUND — wrong bridge entity, gold answer never reached")
 
-    # Example 3: MISSING_REW, ORIG_BETTER — gold vanished, chain broken
+    # 3. Q1 wrong, correct entity found later but not used → fails
     ex = next((r for r in records
-               if r["order_class"] == "MISSING_REW" and r["acc_group"] == "ORIG_BETTER"), None)
+               if r["q1_class"] == "Q1_WRONG_FOUND_NOT_USED" and r["acc_group"] == "ORIG_BETTER"), None)
     if ex:
-        show(ex, "MISSING_REW × ORIG_BETTER — gold vanished from rewrite chain (wrong-entity cascade)")
+        show(ex, "Q1_WRONG_FOUND_NOT_USED — correct entity appears later but gold step ignores it")
 
-    # Example 4: LAST_ORIG_ONLY, BOTH_CORRECT — gold shifted but still correct
+    # 4. Q1 wrong, correct entity found and used → succeeds
     ex = next((r for r in records
-               if r["order_class"] == "LAST_ORIG_ONLY" and r["acc_group"] == "BOTH_CORRECT"), None)
+               if r["q1_class"] == "Q1_WRONG_RECOVERED" and r["acc_group"] == "BOTH_CORRECT"), None)
     if ex:
-        show(ex, "LAST_ORIG_ONLY × BOTH_CORRECT — gold shifted but rewrite still succeeded")
-
-    print()
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# FIGURE 0 — Overall performance + question-type breakdown
-# ══════════════════════════════════════════════════════════════════════════════
-
-def fig_overall_performance(records):
-    """
-    Three-panel figure:
-      Left  — overall accuracy: original vs rewrite (4 outcome groups stacked)
-      Middle — accuracy by gold relation type (what the question ultimately asks)
-      Right  — degradation rate by type of constraint added in the rewrite
-    """
-    n = len(records)
-    acc_groups = ["BOTH_CORRECT", "ORIG_BETTER", "REW_BETTER", "BOTH_WRONG"]
-    acc_colors = [COLORS[g] for g in acc_groups]
-    acc_nice   = ["Both correct\n(orig✓ rew✓)", "Degraded\n(orig✓ rew✗)",
-                  "Improved\n(orig✗ rew✓)", "Both wrong\n(orig✗ rew✗)"]
-
-    # ── build counts ──────────────────────────────────────────────────────────
-    group_counts = Counter(r["acc_group"] for r in records)
-
-    rel_types = ["Birth / death", "Family relation", "Nationality", "Education", "Other"]
-    con_types = ["Birthdate", "Family constraint", "Other description",
-                 "Award / honor", "Citizenship", "Death date"]
-
-    # accuracy by gold relation type
-    rel_acc = {}
-    for rt in rel_types:
-        sub = [r for r in records if r["gold_rel_type"] == rt]
-        rel_acc[rt] = {
-            "n":       len(sub),
-            "orig_ok": sum(1 for r in sub if r["orig_ok"]),
-            "rew_ok":  sum(1 for r in sub if r["rew_ok"]),
-            "degrade": sum(1 for r in sub if r["orig_ok"] and not r["rew_ok"]),
-            "orig_ok_n": sum(1 for r in sub if r["orig_ok"]),
-        }
-
-    # degradation rate by constraint type
-    con_deg = {}
-    for ct in con_types:
-        sub      = [r for r in records if r["added_con_type"] == ct]
-        orig_ok  = [r for r in sub if r["orig_ok"]]
-        degraded = [r for r in orig_ok if not r["rew_ok"]]
-        con_deg[ct] = (len(degraded), len(orig_ok), len(sub))
-
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5.5),
-                             gridspec_kw={"wspace": 0.45})
-
-    # ── Panel A: overall stacked bar (orig / rewrite) ─────────────────────
-    ax = axes[0]
-    n_orig_ok = sum(1 for r in records if r["orig_ok"])
-    n_rew_ok  = sum(1 for r in records if r["rew_ok"])
-
-    # two bars: original score, rewrite score — broken into 4 groups
-    # (simplified: just show overall accuracy + the 4-group breakdown)
-    group_order = ["BOTH_CORRECT", "REW_BETTER", "ORIG_BETTER", "BOTH_WRONG"]
-    g_colors    = [COLORS[g] for g in group_order]
-    g_nice      = ["Both correct", "Improved\n(rew only)", "Degraded\n(orig only)", "Both wrong"]
-
-    vals = [group_counts[g] for g in group_order]
-    bottoms = np.zeros(2)
-    x_pos = [0, 1]
-
-    # For each group, compute its contribution to each bar
-    # orig bar: BOTH_CORRECT + ORIG_BETTER are correct
-    # rew  bar: BOTH_CORRECT + REW_BETTER are correct
-    stacks = {
-        "BOTH_CORRECT": (group_counts["BOTH_CORRECT"], group_counts["BOTH_CORRECT"]),
-        "REW_BETTER":   (0,                            group_counts["REW_BETTER"]),
-        "ORIG_BETTER":  (group_counts["ORIG_BETTER"],  0),
-        "BOTH_WRONG":   (group_counts["BOTH_WRONG"],   group_counts["BOTH_WRONG"]),
-    }
-    stack_colors = {
-        "BOTH_CORRECT": "#2196F3",
-        "REW_BETTER":   "#4CAF50",
-        "ORIG_BETTER":  "#F44336",
-        "BOTH_WRONG":   "#9E9E9E",
-    }
-    stack_labels = {
-        "BOTH_CORRECT": f"Both correct ({group_counts['BOTH_CORRECT']})",
-        "REW_BETTER":   f"Rewrite only ({group_counts['REW_BETTER']})",
-        "ORIG_BETTER":  f"Original only ({group_counts['ORIG_BETTER']})",
-        "BOTH_WRONG":   f"Both wrong ({group_counts['BOTH_WRONG']})",
-    }
-
-    bottoms = np.zeros(2)
-    for g in ["BOTH_WRONG", "ORIG_BETTER", "REW_BETTER", "BOTH_CORRECT"]:
-        orig_v, rew_v = stacks[g]
-        bar_vals = [orig_v, rew_v]
-        bars = ax.bar(x_pos, bar_vals, bottom=bottoms, color=stack_colors[g],
-                      label=stack_labels[g], edgecolor="white", linewidth=0.8, width=0.5)
-        for bar, v, bot in zip(bars, bar_vals, bottoms):
-            if v >= 8:
-                ax.text(bar.get_x() + bar.get_width()/2, bot + v/2,
-                        str(v), ha="center", va="center",
-                        fontsize=9, fontweight="bold", color="white")
-        bottoms += np.array(bar_vals)
-
-    # accuracy % labels on top
-    for xi, acc_n in zip(x_pos, [n_orig_ok, n_rew_ok]):
-        ax.text(xi, n + 4, f"{100*acc_n/n:.1f}%\naccurate",
-                ha="center", va="bottom", fontsize=10, fontweight="bold")
-
-    ax.set_xticks(x_pos)
-    ax.set_xticklabels(["Original", "Rewrite"], fontsize=11, fontweight="bold")
-    ax.set_ylabel("Number of question pairs", fontsize=10)
-    ax.set_ylim(0, n * 1.18)
-    ax.set_title("A: Overall accuracy\n(n=291 pairs)", fontsize=10, fontweight="bold")
-    ax.legend(fontsize=8, loc="lower right", framealpha=0.9)
-    ax.spines[["top", "right"]].set_visible(False)
-
-    # ── Panel B: orig & rewrite accuracy by gold relation type ────────────
-    ax = axes[1]
-    y = np.arange(len(rel_types))
-    h = 0.32
-
-    orig_rates = [100 * rel_acc[rt]["orig_ok"] / rel_acc[rt]["n"]
-                  if rel_acc[rt]["n"] else 0 for rt in rel_types]
-    rew_rates  = [100 * rel_acc[rt]["rew_ok"]  / rel_acc[rt]["n"]
-                  if rel_acc[rt]["n"] else 0 for rt in rel_types]
-    ns         = [rel_acc[rt]["n"] for rt in rel_types]
-
-    b1 = ax.barh(y + h/2, orig_rates, h, label="Original", color="#1565C0", alpha=0.85)
-    b2 = ax.barh(y - h/2, rew_rates,  h, label="Rewrite",  color="#FB8C00", alpha=0.85)
-
-    for bar, rate, n_rt in zip(b1, orig_rates, ns):
-        ax.text(bar.get_width() + 1, bar.get_y() + bar.get_height()/2,
-                f"{rate:.0f}%", va="center", fontsize=8)
-    for bar, rate in zip(b2, rew_rates):
-        ax.text(bar.get_width() + 1, bar.get_y() + bar.get_height()/2,
-                f"{rate:.0f}%", va="center", fontsize=8)
-
-    ax.set_yticks(y)
-    ax.set_yticklabels(
-        [f"{rt}\n(n={rel_acc[rt]['n']})" for rt in rel_types], fontsize=8.5)
-    ax.set_xlabel("Accuracy %", fontsize=10)
-    ax.set_xlim(0, 115)
-    ax.set_title("B: Accuracy by gold relation type\n(what the question ultimately asks)",
-                 fontsize=10, fontweight="bold")
-    ax.legend(fontsize=9)
-    ax.spines[["top", "right"]].set_visible(False)
-    ax.axvline(50, color="#ddd", lw=1, ls="--")
-
-    # ── Panel C: degradation rate by constraint type ────────────────────
-    ax = axes[2]
-    deg_rates = []
-    deg_labels = []
-    bar_clrs3  = []
-    ns_labels3 = []
-
-    palette = ["#C62828", "#E64A19", "#F57F17", "#558B2F", "#1565C0", "#6A1B9A"]
-    for ci, ct in enumerate(con_types):
-        nd, no, ntot = con_deg[ct]
-        rate = 100 * nd / no if no else 0
-        deg_rates.append(rate)
-        deg_labels.append(f"{ct}\n(n={ntot})")
-        bar_clrs3.append(palette[ci % len(palette)])
-        ns_labels3.append(f"{nd}/{no}")
-
-    # sort by degradation rate descending
-    order = sorted(range(len(deg_rates)), key=lambda i: deg_rates[i], reverse=True)
-    deg_rates  = [deg_rates[i]  for i in order]
-    deg_labels = [deg_labels[i] for i in order]
-    bar_clrs3  = [bar_clrs3[i]  for i in order]
-    ns_labels3 = [ns_labels3[i] for i in order]
-
-    bars3 = ax.barh(range(len(con_types)), deg_rates,
-                    color=bar_clrs3, edgecolor="white", linewidth=0.8, alpha=0.9, height=0.55)
-    for bar, rate, ns_lbl in zip(bars3, deg_rates, ns_labels3):
-        ax.text(bar.get_width() + 1, bar.get_y() + bar.get_height()/2,
-                f"{rate:.0f}%  ({ns_lbl} orig✓)", va="center", fontsize=8)
-
-    ax.set_yticks(range(len(con_types)))
-    ax.set_yticklabels(deg_labels, fontsize=8.5)
-    ax.set_xlabel("Degradation rate (orig✓ → rew✗) %", fontsize=10)
-    ax.set_xlim(0, 115)
-    ax.axvline(50, color="#ddd", lw=1, ls="--")
-    ax.set_title("C: Degradation rate by added constraint type\n"
-                 "(what the rewrite added as Q1)",
-                 fontsize=10, fontweight="bold")
-    ax.spines[["top", "right"]].set_visible(False)
-
-    fig.suptitle(
-        "Overall Performance and Question-Type Breakdown  (n=291 pairs)",
-        fontsize=12, fontweight="bold", y=1.01,
-    )
-    fig.tight_layout()
-    save(fig, "fig0_overall_performance.png")
-
-
-def fig_order_class_by_question_type(records):
-    """
-    Stacked bar: for each gold relation type, show the distribution of order classes.
-    Helps understand which question types are most vulnerable to chain breakage.
-    """
-    rel_types   = ["Birth / death", "Family relation", "Nationality", "Education", "Other"]
-    oc_focus    = ["LAST_BOTH", "LAST_ORIG_ONLY", "MISSING_REW", "MISSING_BOTH", "OTHER_OC"]
-    oc_colors_f = [ORDER_COLOR["LAST_BOTH"], ORDER_COLOR["LAST_ORIG_ONLY"],
-                   ORDER_COLOR["MISSING_REW"], ORDER_COLOR["MISSING_BOTH"], "#B0BEC5"]
-    oc_labels_f = ["Gold preserved\n(LAST_BOTH)", "Gold shifted\n(LAST_ORIG_ONLY)",
-                   "Gold vanished\n(MISSING_REW)", "Gold absent both\n(MISSING_BOTH)", "Other"]
-
-    # build matrix: rel_type × order_class
-    matrix = {}
-    for rt in rel_types:
-        sub = [r for r in records if r["gold_rel_type"] == rt]
-        row = {}
-        for oc in oc_focus[:-1]:
-            row[oc] = sum(1 for r in sub if r["order_class"] == oc)
-        row["OTHER_OC"] = len(sub) - sum(row.values())
-        matrix[rt] = row
-
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5),
-                             gridspec_kw={"wspace": 0.45})
-
-    # ── Left: stacked bar (order class × rel type) ────────────────────────
-    ax = axes[0]
-    x  = np.arange(len(rel_types))
-    bottoms = np.zeros(len(rel_types))
-    for oc, color, label in zip(oc_focus, oc_colors_f, oc_labels_f):
-        vals = np.array([matrix[rt][oc] for rt in rel_types])
-        bars = ax.bar(x, vals, bottom=bottoms, color=color, label=label,
-                      edgecolor="white", linewidth=0.8)
-        for bar, v, bot in zip(bars, vals, bottoms):
-            if v >= 5:
-                ax.text(bar.get_x() + bar.get_width()/2, bot + v/2,
-                        str(v), ha="center", va="center",
-                        fontsize=8, fontweight="bold", color="white")
-        bottoms += vals
-
-    totals = [sum(matrix[rt].values()) for rt in rel_types]
-    for xi, tot in zip(x, totals):
-        ax.text(xi, tot + 1, f"n={tot}", ha="center", va="bottom", fontsize=8)
-
-    ax.set_xticks(x)
-    ax.set_xticklabels(rel_types, fontsize=9)
-    ax.set_ylabel("Number of pairs", fontsize=10)
-    ax.set_title("Order-class breakdown\nby gold relation type", fontsize=10, fontweight="bold")
-    ax.legend(fontsize=8, loc="upper right", framealpha=0.9)
-    ax.spines[["top", "right"]].set_visible(False)
-
-    # ── Right: MISSING_REW rate (chain-breakage rate) by rel type ────────
-    ax2 = axes[1]
-    miss_rates = [
-        100 * matrix[rt]["MISSING_REW"] / sum(matrix[rt].values())
-        if sum(matrix[rt].values()) else 0
-        for rt in rel_types
-    ]
-    degrade_rates = []
-    for rt in rel_types:
-        sub = [r for r in records if r["gold_rel_type"] == rt]
-        orig_ok  = [r for r in sub if r["orig_ok"]]
-        degraded = [r for r in orig_ok if not r["rew_ok"]]
-        degrade_rates.append(100 * len(degraded) / len(orig_ok) if orig_ok else 0)
-
-    y = np.arange(len(rel_types))
-    h = 0.32
-    b1 = ax2.barh(y + h/2, miss_rates,    h, label="Chain breakage rate\n(MISSING_REW %)",
-                  color=ORDER_COLOR["MISSING_REW"], alpha=0.85)
-    b2 = ax2.barh(y - h/2, degrade_rates, h, label="Degradation rate\n(orig✓→rew✗ %)",
-                  color="#F44336", alpha=0.7)
-
-    for bar, v in zip(list(b1) + list(b2), miss_rates + degrade_rates):
-        ax2.text(bar.get_width() + 0.8, bar.get_y() + bar.get_height()/2,
-                 f"{v:.0f}%", va="center", fontsize=8)
-
-    ax2.set_yticks(y)
-    ax2.set_yticklabels(rel_types, fontsize=9)
-    ax2.set_xlabel("%", fontsize=10)
-    ax2.set_xlim(0, 100)
-    ax2.axvline(30, color="#ddd", lw=1, ls="--")
-    ax2.set_title("Chain breakage vs degradation rate\nby gold relation type",
-                  fontsize=10, fontweight="bold")
-    ax2.legend(fontsize=8.5)
-    ax2.spines[["top", "right"]].set_visible(False)
-
-    fig.suptitle(
-        "Which Question Types Are Most Vulnerable to Rewrite-Induced Failures?",
-        fontsize=12, fontweight="bold", y=1.01,
-    )
-    fig.tight_layout()
-    save(fig, "fig6_order_class_by_question_type.png")
-
-
-# ── print: overall performance ────────────────────────────────────────────────
-
-def print_overall_performance(records):
-    n = len(records)
-    n_orig_ok = sum(1 for r in records if r["orig_ok"])
-    n_rew_ok  = sum(1 for r in records if r["rew_ok"])
-    group_counts = Counter(r["acc_group"] for r in records)
-
-    print(SEP)
-    print("  OVERALL PERFORMANCE")
-    print(SEP2)
-    print(f"""
-  Dataset: {n} question pairs (2WikiMultiHop)
-
-  Accuracy
-  ─────────────────────────────────────────────
-  Original:  {n_orig_ok}/{n}  ({100*n_orig_ok/n:.1f}%)
-  Rewrite:   {n_rew_ok}/{n}  ({100*n_rew_ok/n:.1f}%)
-  Δ accuracy: {100*(n_rew_ok - n_orig_ok)/n:+.1f} pp
-
-  Outcome breakdown:
-    Both correct   (orig✓ rew✓): {group_counts['BOTH_CORRECT']:>4}  ({pct_str(group_counts['BOTH_CORRECT'], n)})
-    Degraded       (orig✓ rew✗): {group_counts['ORIG_BETTER']:>4}  ({pct_str(group_counts['ORIG_BETTER'], n)})
-    Improved       (orig✗ rew✓): {group_counts['REW_BETTER']:>4}  ({pct_str(group_counts['REW_BETTER'], n)})
-    Both wrong     (orig✗ rew✗): {group_counts['BOTH_WRONG']:>4}  ({pct_str(group_counts['BOTH_WRONG'], n)})
-""")
-
-    # by gold relation type
-    rel_types = ["Birth / death", "Family relation", "Nationality", "Education", "Other"]
-    print("  Accuracy by question type  (what the gold step ultimately asks)")
-    print(f"  {'Question type':<22}  {'n':>4}  {'orig acc':>9}  {'rew acc':>9}  "
-          f"{'Δ acc':>7}  {'degrade rate':>13}")
-    print("  " + "-" * 72)
-    for rt in rel_types:
-        sub      = [r for r in records if r["gold_rel_type"] == rt]
-        n_rt     = len(sub)
-        orig_ok  = sum(1 for r in sub if r["orig_ok"])
-        rew_ok   = sum(1 for r in sub if r["rew_ok"])
-        n_orig_ok_rt = orig_ok
-        degraded = sum(1 for r in sub if r["orig_ok"] and not r["rew_ok"])
-        delta    = 100 * (rew_ok - orig_ok) / n_rt if n_rt else 0
-        deg_r    = 100 * degraded / orig_ok if orig_ok else 0
-        print(f"  {rt:<22}  {n_rt:>4}  "
-              f"{100*orig_ok/n_rt:>7.1f}%  {100*rew_ok/n_rt:>7.1f}%  "
-              f"{delta:>+6.1f}pp  {degraded:>3}/{orig_ok:<3} ({deg_r:.0f}%)")
-
-    print()
-    # by added constraint type
-    con_types = ["Birthdate", "Family constraint", "Other description",
-                 "Award / honor", "Citizenship", "Death date"]
-    print("  Degradation rate by constraint type  (what was added to the rewrite Q1)")
-    print(f"  {'Constraint type':<22}  {'n':>4}  {'orig acc':>9}  {'rew acc':>9}  "
-          f"{'degrade rate':>13}")
-    print("  " + "-" * 64)
-    for ct in sorted(con_types, key=lambda c: -sum(
-            1 for r in records if r["added_con_type"] == c and r["orig_ok"] and not r["rew_ok"]
-        ) / max(sum(1 for r in records if r["added_con_type"] == c and r["orig_ok"]), 1)):
-        sub      = [r for r in records if r["added_con_type"] == ct]
-        n_ct     = len(sub)
-        orig_ok  = sum(1 for r in sub if r["orig_ok"])
-        rew_ok   = sum(1 for r in sub if r["rew_ok"])
-        degraded = sum(1 for r in sub if r["orig_ok"] and not r["rew_ok"])
-        deg_r    = 100 * degraded / orig_ok if orig_ok else 0
-        print(f"  {ct:<22}  {n_ct:>4}  "
-              f"{100*orig_ok/n_ct:>7.1f}%  {100*rew_ok/n_ct:>7.1f}%  "
-              f"{degraded:>3}/{orig_ok:<3} ({deg_r:.0f}%)")
-
-    print()
-    # by n_steps in original chain
-    print("  Accuracy by original chain length  (number of sub-questions)")
-    print(f"  {'Orig chain length':<22}  {'n':>4}  {'orig acc':>9}  {'rew acc':>9}  "
-          f"{'degrade rate':>13}")
-    print("  " + "-" * 64)
-    for nsteps in sorted(set(r["n_orig"] for r in records)):
-        sub      = [r for r in records if r["n_orig"] == nsteps]
-        n_ns     = len(sub)
-        orig_ok  = sum(1 for r in sub if r["orig_ok"])
-        rew_ok   = sum(1 for r in sub if r["rew_ok"])
-        degraded = sum(1 for r in sub if r["orig_ok"] and not r["rew_ok"])
-        deg_r    = 100 * degraded / orig_ok if orig_ok else 0
-        print(f"  {nsteps} sub-questions{'':<9}  {n_ns:>4}  "
-              f"{100*orig_ok/n_ns:>7.1f}%  {100*rew_ok/n_ns:>7.1f}%  "
-              f"{degraded:>3}/{orig_ok:<3} ({deg_r:.0f}%)")
+        show(ex, "Q1_WRONG_RECOVERED — correct entity found later AND used by gold step")
     print()
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    print("Loading data...", end=" ", flush=True)
+    print("Loading data ...", end=" ", flush=True)
     records = load_records()
     print(f"{len(records)} pairs loaded.\n")
 
-    print("Generating figures...", flush=True)
-    fig_overall_performance(records)
-    fig_order_class_by_question_type(records)
-    fig_q1_original_gold_position(records)
-    fig_q2_order_preservation_overview(records)
-    fig_q2_position_shift_detail(records)
-    fig_q3_degradation_by_order_class(records)
-    fig_q3_heatmap(records)
-    fig_summary_funnel(records)
+    print("Generating figures ...")
+    fig_overall(records)
+    fig_q1_selectivity(records)
+    fig_bridge_entity_impact(records)
+    fig_bridge_recovery_position(records)
+    fig_summary(records)
     print()
 
-    print_task_definition()
-    print_overall_performance(records)
-    print_q1(records)
-    print_q2(records)
-    print_q3(records)
-    print_examples_section(records)
+    print_report(records)
+    print_examples(records)
 
     print(SEP)
-    print(f"  Figures saved to: {FIG_DIR}/")
-    print("  fig0_overall_performance.png            — Overall accuracy + question-type breakdown")
-    print("  fig1_q1_original_gold_position.png      — Q1: position in original chain")
-    print("  fig2_q2_order_preservation_donut.png    — Q2: overall preservation breakdown")
-    print("  fig2b_q2_position_shift.png              — Q2: orig vs rewrite rank-from-end")
-    print("  fig3_q3_degradation_by_order_class.png  — Q3: degradation rate per class")
-    print("  fig4_heatmap_order_vs_accuracy.png       — Q3: full cross-tabulation heatmap")
-    print("  fig5_summary_funnel.png                  — Summary: A→B→C flow")
-    print("  fig6_order_class_by_question_type.png   — Which question types break most")
+    print(f"  Figures → {FIG_DIR}/")
+    print("  fig1_overall_accuracy.png       — overall accuracy: original vs rewrite")
+    print("  fig2_q1_selectivity.png         — Q1 outcome class distribution + accuracy")
+    print("  fig3_bridge_entity_impact.png   — accuracy when bridge entity correct vs wrong")
+    print("  fig4_bridge_recovery_position.png — where correct entity appears in rewrite")
+    print("  fig5_summary.png                — causal chain: Q1 → bridge → accuracy")
     print(SEP)
 
 
