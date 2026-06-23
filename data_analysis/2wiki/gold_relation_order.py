@@ -136,7 +136,7 @@ def find_gold_step(decomposed, intermediates):
         ref_lbl = f"Q{ref.group(1)}" if ref else None
         candidates.append({
             "label": lbl, "text": txt, "answer": ans,
-            "rfe": n - 1 - i, "ref_label": ref_lbl,
+            "rfe": n - 1 - i, "ref_label": ref_lbl, "pos": i,
         })
     if not candidates:
         return None
@@ -156,6 +156,12 @@ def analyze_pair(orig_decomp, rew_decomp, orig_inter, rew_inter, gold):
     gs_orig    = find_gold_step(orig_decomp, orig_inter)
     bridge_orig = orig_inter.get(gs_orig["ref_label"]) if gs_orig and gs_orig["ref_label"] else None
 
+    # ── original Q1 accuracy (baseline) ──────────────────────────────────────
+    orig_q1_label  = orig_decomp[0]["label"] if orig_decomp else None
+    orig_q1_text   = orig_decomp[0].get("text", "") if orig_decomp else ""
+    orig_q1_answer = orig_inter.get(orig_q1_label) if orig_q1_label else None
+    orig_q1_correct = entity_match(bridge_orig, orig_q1_answer) if bridge_orig else None
+
     # ── rewrite Q1 ────────────────────────────────────────────────────────────
     rew_q1_label  = rew_decomp[0]["label"] if rew_decomp else None
     rew_q1_text   = rew_decomp[0].get("text", "") if rew_decomp else ""
@@ -168,8 +174,9 @@ def analyze_pair(orig_decomp, rew_decomp, orig_inter, rew_inter, gold):
     gold_step_correct_bridge = entity_match(bridge_orig, bridge_rew) if bridge_orig and bridge_rew else False
     gold_found_rew = gold_match(gold, gs_rew["answer"]) if gs_rew else False
 
-    # ── where does the correct bridge entity first appear in the rewrite? ─────
-    first_correct_pos = None   # 0-indexed position in rewrite chain
+    # ── where does Hop1 (bridge entity) appear in the rewrite chain? ─────────
+    # In the original, Hop1 is always Q1. In the rewrite, it may shift to Q2, Q3, …
+    first_correct_pos = None   # 0-indexed position where bridge entity first appears in rewrite
     for i, q in enumerate(rew_decomp):
         ans = rew_inter.get(q["label"], "")
         if entity_match(bridge_orig, ans):
@@ -188,11 +195,28 @@ def analyze_pair(orig_decomp, rew_decomp, orig_inter, rew_inter, gold):
     else:
         q1_class = "Q1_WRONG_NOT_FOUND"
 
+    # ── order change classification ───────────────────────────────────────────
+    # rfe=0 means the gold step is the LAST sub-question in the chain.
+    # When the rewrite adds verification steps AFTER the gold step, rfe > 0.
+    o_rfe = gs_orig["rfe"] if gs_orig else None
+    r_rfe = gs_rew["rfe"]  if gs_rew  else None
+    if gs_orig is None or gs_rew is None:
+        order_class = "GOLD_NOT_FOUND"
+    elif o_rfe == 0 and r_rfe == 0:
+        order_class = "GOLD_LAST_BOTH"        # gold step still last in both chains
+    elif o_rfe == 0 and r_rfe > 0:
+        order_class = "GOLD_PUSHED_EARLIER"   # verification steps appended after gold step
+    else:
+        order_class = "OTHER"
+
     return {
         "gs_orig": gs_orig,
         "gs_rew":  gs_rew,
         "bridge_orig": bridge_orig,
         "bridge_rew":  bridge_rew,
+        "orig_q1_text":    orig_q1_text,
+        "orig_q1_answer":  orig_q1_answer,
+        "orig_q1_correct": orig_q1_correct,
         "rew_q1_answer": rew_q1_answer,
         "rew_q1_text":   rew_q1_text,
         "q1_correct":    q1_correct,
@@ -200,6 +224,9 @@ def analyze_pair(orig_decomp, rew_decomp, orig_inter, rew_inter, gold):
         "gold_found_rew":           gold_found_rew,
         "first_correct_pos":        first_correct_pos,
         "q1_class":                 q1_class,
+        "order_class":              order_class,
+        "gs_orig_rfe":              o_rfe,
+        "gs_rew_rfe":               r_rfe,
         "n_orig": len(orig_decomp),
         "n_rew":  len(rew_decomp),
     }
@@ -322,7 +349,112 @@ def fig_overall(records):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Fig 2  —  Q1 selectivity: does rewrite Q1 retrieve the correct bridge entity?
+# Fig 2  —  Q1 accuracy comparison: original vs rewrite, and Hop1 order shift
+# ══════════════════════════════════════════════════════════════════════════════
+
+def fig_q1_comparison(records):
+    """
+    Left  — Q1 accuracy: original Q1 vs rewrite Q1 (bar + breakdown)
+    Right — Where Hop1 (bridge entity) appears in the rewrite chain vs always-Q1 in original
+    """
+    has_bridge = [r for r in records if r["bridge_orig"] is not None]
+    nb = len(has_bridge)
+
+    orig_q1_ok = sum(1 for r in has_bridge if r["orig_q1_correct"])
+    rew_q1_ok  = sum(1 for r in has_bridge if r["q1_correct"])
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+
+    # ── Left: Q1 accuracy comparison bar ─────────────────────────────────────
+    ax = axes[0]
+    labels  = ["Original Q1\n(direct Hop1 question)", "Rewrite Q1\n(added constraint)"]
+    ok_vals = [100 * orig_q1_ok / nb, 100 * rew_q1_ok / nb]
+    fail_vals = [100 - v for v in ok_vals]
+    colors_ok   = ["#455A64", "#2196F3"]
+    colors_fail = ["#B0BEC5", "#BBDEFB"]
+
+    x = np.arange(2)
+    b1 = ax.bar(x, ok_vals,   0.52, label="Q1 gets correct bridge entity", color=colors_ok,   alpha=0.9)
+    b2 = ax.bar(x, fail_vals, 0.52, bottom=ok_vals, label="Q1 gets WRONG entity",
+                color=colors_fail, alpha=0.85, edgecolor="white")
+    for bar, v in zip(b1, ok_vals):
+        ax.text(bar.get_x() + bar.get_width() / 2, v / 2,
+                f"{v:.1f}%", ha="center", va="center", fontsize=13, fontweight="bold", color="white")
+    for bar, ov, fv in zip(b2, ok_vals, fail_vals):
+        if fv > 3:
+            ax.text(bar.get_x() + bar.get_width() / 2, ov + fv / 2,
+                    f"{fv:.1f}%", ha="center", va="center", fontsize=11, color="#444")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, fontsize=10)
+    ax.set_ylabel("% of pairs with identifiable bridge entity", fontsize=10)
+    ax.set_ylim(0, 115)
+    ax.legend(fontsize=9, loc="lower right")
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.set_title(
+        f"Q1 Accuracy: Original vs Rewrite\n"
+        f"(original={100*orig_q1_ok/nb:.1f}%  →  rewrite={100*rew_q1_ok/nb:.1f}%,  n={nb})",
+        fontsize=10, fontweight="bold",
+    )
+
+    # ── Right: Hop1 position in rewrite (grouped bar: count + rew accuracy) ──
+    ax = axes[1]
+    hop1_pos_data = []
+    for pos in [0, 1, 2, 3]:
+        sub = [r for r in has_bridge if r["first_correct_pos"] == pos]
+        if sub:
+            ra = sum(r["rew_ok"] for r in sub)
+            hop1_pos_data.append((f"Q{pos+1}", len(sub), 100 * ra / len(sub)))
+    never = [r for r in has_bridge if r["first_correct_pos"] is None]
+    if never:
+        ra = sum(r["rew_ok"] for r in never)
+        hop1_pos_data.append(("Never\nfound", len(never), 100 * ra / len(never)))
+
+    labels_h = [d[0] for d in hop1_pos_data]
+    counts_h = [d[1] for d in hop1_pos_data]
+    accs_h   = [d[2] for d in hop1_pos_data]
+    colors_h = ["#4CAF50" if l == "Q1" else "#FF9800" if l in ["Q2","Q3","Q4"] else "#F44336"
+                for l in labels_h]
+
+    x2 = np.arange(len(hop1_pos_data))
+    w  = 0.44
+    bars = ax.bar(x2, counts_h, w, color=colors_h, alpha=0.88, edgecolor="white")
+    for bar, cnt, acc in zip(bars, counts_h, accs_h):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1,
+                f"{cnt}", ha="center", va="bottom", fontsize=10, fontweight="bold")
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() / 2,
+                f"acc\n{acc:.0f}%", ha="center", va="center", fontsize=8.5, color="white", fontweight="bold")
+
+    ax.set_xticks(x2)
+    ax.set_xticklabels(
+        [f"Hop1 at {l}\n(pos {i})" if l not in ("Never\nfound",) else "Hop1 never\nfound"
+         for i, l in enumerate(labels_h)],
+        fontsize=9,
+    )
+    ax.set_ylabel("Number of pairs", fontsize=10)
+    ax.spines[["top", "right"]].set_visible(False)
+    # add a note for original baseline
+    ax.axhline(0, color="none")
+    ax.text(0, max(counts_h) * 1.06,
+            "In original: Hop1 ALWAYS at Q1 (pos 0)  →  94.8% Q1 accuracy",
+            ha="left", va="bottom", fontsize=8.5, color="#333",
+            style="italic",
+            bbox=dict(boxstyle="round,pad=0.3", fc="#FFF9C4", ec="#FBC02D", alpha=0.9))
+    ax.set_title(
+        "Where Does Hop1 (Bridge Entity) Appear in the Rewrite Chain?\n"
+        "(Original: always Q1 → Rewrite: shifts to Q2, Q3, Q4, or never)",
+        fontsize=10, fontweight="bold",
+    )
+
+    fig.suptitle(
+        "Order Shift: Original Q1 = Direct Hop1  →  Rewrite Q1 = Added Constraint",
+        fontsize=11, fontweight="bold", y=1.01,
+    )
+    fig.tight_layout()
+    save_fig(fig, "fig2_q1_comparison.png")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Fig 3  —  Q1 selectivity: does rewrite Q1 retrieve the correct bridge entity?
 # ══════════════════════════════════════════════════════════════════════════════
 
 def fig_q1_selectivity(records):
@@ -394,7 +526,7 @@ def fig_q1_selectivity(records):
     fig.suptitle("Effect of Rewrite Q1 Selectivity on Bridge Entity Retrieval and Accuracy",
                  fontsize=11, fontweight="bold", y=1.01)
     fig.tight_layout()
-    save_fig(fig, "fig2_q1_selectivity.png")
+    save_fig(fig, "fig3_q1_selectivity.png")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -455,7 +587,7 @@ def fig_bridge_entity_impact(records):
         fontsize=11, fontweight="bold",
     )
     fig.tight_layout()
-    save_fig(fig, "fig3_bridge_entity_impact.png")
+    save_fig(fig, "fig4_bridge_entity_impact.png")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -506,11 +638,144 @@ def fig_bridge_recovery_position(records):
         fontsize=10, fontweight="bold",
     )
     fig.tight_layout()
-    save_fig(fig, "fig4_bridge_recovery_position.png")
+    save_fig(fig, "fig5_bridge_recovery_position.png")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Fig 5  —  Summary: three-step causal chain
+# Fig 5  —  Order analysis: does the gold step change position after rewrite?
+# ══════════════════════════════════════════════════════════════════════════════
+
+def fig_order_analysis(records):
+    """
+    Three panels:
+      Left  — distribution of gold step absolute position in original vs rewrite
+      Middle — order change class breakdown + accuracy
+      Right  — accuracy within each order class, split by Q1 correctness
+    """
+    # ── data preparation ──────────────────────────────────────────────────────
+    order_classes = [
+        ("GOLD_LAST_BOTH",      "#2196F3", "Gold step last\nin both chains"),
+        ("GOLD_PUSHED_EARLIER", "#FF9800", "Gold step pushed\nearlier in rewrite"),
+        ("GOLD_NOT_FOUND",      "#F44336", "Gold step not\nidentifiable in rewrite"),
+        ("OTHER",               "#9E9E9E", "Other"),
+    ]
+    oc_counts = {c: [r for r in records if r["order_class"] == c] for c, _, _ in order_classes}
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+    # ── Left: position distribution (0-indexed) ───────────────────────────────
+    ax = axes[0]
+    known_orig = [r for r in records if r["gs_orig"] is not None]
+    known_rew  = [r for r in records if r["gs_rew"]  is not None]
+    max_pos = max(
+        max((r["gs_orig"]["pos"] for r in known_orig), default=0),
+        max((r["gs_rew"]["pos"]  for r in known_rew),  default=0),
+    )
+    positions = list(range(max_pos + 1))
+    orig_counts = [sum(1 for r in known_orig if r["gs_orig"]["pos"] == p) for p in positions]
+    rew_counts  = [sum(1 for r in known_rew  if r["gs_rew"]["pos"]  == p) for p in positions]
+    x = np.arange(len(positions))
+    w = 0.38
+    b1 = ax.bar(x - w/2, orig_counts, w, label="Original", color="#455A64", alpha=0.85)
+    b2 = ax.bar(x + w/2, rew_counts,  w, label="Rewrite",  color="#2196F3", alpha=0.85)
+    for bar, v in zip(list(b1) + list(b2), orig_counts + rew_counts):
+        if v > 0:
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1,
+                    str(v), ha="center", va="bottom", fontsize=8.5)
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"Q{p+1}" for p in positions], fontsize=10)
+    ax.set_xlabel("Gold step position in chain", fontsize=10)
+    ax.set_ylabel("Number of pairs", fontsize=10)
+    ax.legend(fontsize=9)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.set_title("Gold Relation Step Position:\nOriginal vs Rewrite", fontsize=10, fontweight="bold")
+
+    # ── Middle: order class bar + accuracy ───────────────────────────────────
+    ax = axes[1]
+    active = [(c, col, lbl) for c, col, lbl in order_classes if oc_counts[c]]
+    y = np.arange(len(active))
+    cnts   = [len(oc_counts[c]) for c, _, _ in active]
+    colors = [col for _, col, _ in active]
+    lbls   = [lbl for _, _, lbl in active]
+    rew_accs = [
+        100 * sum(r["rew_ok"] for r in oc_counts[c]) / len(oc_counts[c])
+        for c, _, _ in active
+    ]
+    n = len(records)
+    ax2_twin = ax.twiny()
+    bars = ax.barh(y, cnts, color=colors, alpha=0.85, edgecolor="white", height=0.5)
+    for bar, v in zip(bars, cnts):
+        ax.text(bar.get_width() + 1, bar.get_y() + bar.get_height() / 2,
+                f"{v} ({100*v/n:.0f}%)", va="center", fontsize=8.5)
+    ax2_twin.plot(rew_accs, y, "D--", color="#333", markersize=7, label="Rewrite acc %")
+    for acc, yi in zip(rew_accs, y):
+        ax2_twin.text(acc + 1.5, yi + 0.15, f"{acc:.0f}%", fontsize=8.5, color="#333", fontweight="bold")
+    ax.set_yticks(y)
+    ax.set_yticklabels([f"{lbl}" for lbl in lbls], fontsize=8.5)
+    ax.set_xlabel("Number of pairs", fontsize=9)
+    ax2_twin.set_xlabel("Rewrite accuracy %", fontsize=9)
+    ax2_twin.set_xlim(0, 120)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.set_title("Order Change Class\n(count + rewrite accuracy)", fontsize=10, fontweight="bold")
+
+    # ── Right: degradation rate by order class × Q1 correctness ─────────────
+    ax = axes[2]
+    # Only include classes with enough data for Q1 split
+    split_classes = [
+        ("GOLD_LAST_BOTH",      "#2196F3"),
+        ("GOLD_PUSHED_EARLIER", "#FF9800"),
+    ]
+    x = np.arange(len(split_classes))
+    w2 = 0.32
+    q1_correct_deg   = []
+    q1_wrong_deg     = []
+    q1_correct_n     = []
+    q1_wrong_n       = []
+    for c, _ in split_classes:
+        sub = oc_counts[c]
+        q1c  = [r for r in sub if r.get("q1_correct") is True]
+        q1w  = [r for r in sub if r.get("q1_correct") is False]
+        def degrade_rate(lst):
+            orig_ok = [r for r in lst if r["orig_ok"]]
+            if not orig_ok: return 0
+            return 100 * sum(1 for r in orig_ok if not r["rew_ok"]) / len(orig_ok)
+        q1_correct_deg.append(degrade_rate(q1c))
+        q1_wrong_deg.append(degrade_rate(q1w))
+        q1_correct_n.append(len(q1c))
+        q1_wrong_n.append(len(q1w))
+
+    b_c = ax.bar(x - w2/2, q1_correct_deg, w2, label="Q1 correct",
+                 color="#4CAF50", alpha=0.88, edgecolor="white")
+    b_w = ax.bar(x + w2/2, q1_wrong_deg,   w2, label="Q1 wrong",
+                 color="#F44336", alpha=0.88, edgecolor="white")
+    for bar, v in zip(list(b_c) + list(b_w),
+                      q1_correct_deg + q1_wrong_deg):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1.5,
+                f"{v:.0f}%", ha="center", va="bottom", fontsize=9, fontweight="bold")
+    ax.set_xticks(x)
+    ax.set_xticklabels([lbl for _, _, lbl in order_classes if _ in [c for c,_ in split_classes]][:2],
+                       fontsize=9)
+    ax.set_xticklabels(["Gold last in both\n(n=%d)" % len(oc_counts["GOLD_LAST_BOTH"]),
+                         "Gold pushed earlier\n(n=%d)" % len(oc_counts["GOLD_PUSHED_EARLIER"])],
+                       fontsize=9)
+    ax.set_ylabel("Degradation rate % (of orig-correct)", fontsize=9)
+    ax.set_ylim(0, 115)
+    ax.axhline(50, color="#ddd", lw=1, ls="--")
+    ax.legend(fontsize=9)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.set_title("Degradation Rate by Order Class\n× Q1 Bridge Entity Correctness",
+                 fontsize=10, fontweight="bold")
+
+    fig.suptitle(
+        "Gold Relation Step Order Change After Rewrite",
+        fontsize=12, fontweight="bold", y=1.01,
+    )
+    fig.tight_layout()
+    save_fig(fig, "fig6_order_analysis.png")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Fig 6  —  Summary: three-step causal chain
 # ══════════════════════════════════════════════════════════════════════════════
 
 def fig_summary(records):
@@ -599,7 +864,7 @@ def fig_summary(records):
         "Summary: Q1 Selectivity → Bridge Entity → Accuracy",
         fontsize=12, fontweight="bold", y=1.01,
     )
-    save_fig(fig, "fig5_summary.png")
+    save_fig(fig, "fig7_summary.png")
 
 
 # ── printed report ────────────────────────────────────────────────────────────
@@ -636,9 +901,43 @@ def print_report(records):
     Both wrong     (orig✗ rew✗) : {gc['BOTH_WRONG']:>4}  ({pct(gc['BOTH_WRONG'], n)})
 """)
 
+    # ── Q1 accuracy: original vs rewrite ──────────────────────────────────────
+    print(SEP)
+    print("  Q1 ACCURACY COMPARISON")
+    print(SEP2)
+    has_bridge = [r for r in records if r["bridge_orig"] is not None]
+    nb = len(has_bridge)
+    orig_q1_ok = sum(1 for r in has_bridge if r["orig_q1_correct"])
+    rew_q1_ok  = sum(1 for r in has_bridge if r["q1_correct"])
+    print(f"""
+  Pairs with identifiable bridge entity: {nb}/{n}
+  Original Q1 (direct Hop1 question):  {orig_q1_ok}/{nb}  ({pct(orig_q1_ok, nb)})
+  Rewrite  Q1 (added constraint):       {rew_q1_ok}/{nb}  ({pct(rew_q1_ok, nb)})   Δ = {100*(rew_q1_ok-orig_q1_ok)/nb:+.1f} pp
+
+  In the ORIGINAL, Q1 directly asks the first hop (e.g. "Who directed X?"),
+  so it almost always retrieves the correct bridge entity (94.8%).
+  In the REWRITE, Q1 is replaced by an added constraint (citizenship,
+  birthdate, award, ...) that is often low-selectivity, so the Q1 accuracy
+  drops to 56.0% — a 38.8 pp fall.
+
+  Where does Hop1 (the bridge entity) appear in the rewrite chain?
+  (In the original it is ALWAYS at Q1; in the rewrite it may shift.)
+""")
+    print(f"  {'Hop1 position in rewrite':<30}  {'n':>4}  {'% of has-bridge':>16}  {'rew acc':>8}")
+    print("  " + "-" * 63)
+    for pos in [0, 1, 2, 3]:
+        sub = [r for r in has_bridge if r["first_correct_pos"] == pos]
+        if not sub: continue
+        ra = sum(r["rew_ok"] for r in sub)
+        print(f"  Hop1 at Q{pos+1} (position {pos})             {len(sub):>4}  {pct(len(sub),nb):>16}  {pct(ra,len(sub)):>8}")
+    never_sub = [r for r in has_bridge if r["first_correct_pos"] is None]
+    ra_n = sum(r["rew_ok"] for r in never_sub)
+    print(f"  Hop1 NEVER found in rewrite            {len(never_sub):>4}  {pct(len(never_sub),nb):>16}  {pct(ra_n,len(never_sub)):>8}")
+    print()
+
     # ── Q1: does rewrite Q1 retrieve the correct bridge entity? ────────────────
     print(SEP)
-    print("  Q1: Does rewrite Q1 retrieve the correct bridge entity?")
+    print("  Q1 OUTCOME BREAKDOWN: does rewrite Q1 get the correct bridge entity?")
     print(SEP2)
 
     classes = [
@@ -739,67 +1038,159 @@ def print_report(records):
     resulting in a wrong final answer anyway.
 """)
 
+    # ── Order analysis ─────────────────────────────────────────────────────────
+    print(SEP)
+    print("  ORDER ANALYSIS: Does the gold relation step change position")
+    print("  in the rewrite chain?  (rfe = rank from end, 0 = last step)")
+    print(SEP2)
+
+    order_defs = [
+        ("GOLD_LAST_BOTH",      "Gold step is last in BOTH chains         (rfe=0→0)"),
+        ("GOLD_PUSHED_EARLIER", "Gold step pushed earlier in rewrite       (rfe=0→1+)"),
+        ("GOLD_NOT_FOUND",      "Gold step not identifiable in rewrite     (rfe=?→None)"),
+        ("OTHER",               "Other / orig gold not last               "),
+    ]
+    print(f"\n  {'Order class':<52}  {'n':>4}  {'%':>6}  {'orig acc':>9}  {'rew acc':>9}  {'degrade':>8}")
+    print("  " + "-" * 94)
+    for cls, label in order_defs:
+        subset   = [r for r in records if r["order_class"] == cls]
+        ns       = len(subset)
+        if ns == 0:
+            continue
+        oa = sum(1 for r in subset if r["orig_ok"])
+        ra = sum(1 for r in subset if r["rew_ok"])
+        deg = sum(1 for r in subset if r["orig_ok"] and not r["rew_ok"])
+        print(f"  {label:<52}  {ns:>4}  {pct(ns,n):>6}"
+              f"  {pct(oa,ns):>9}  {pct(ra,ns):>9}  {deg}/{oa} ({pct(deg,oa):>6})")
+
+    print()
+    print("  rfe distribution in rewrite chain (for pairs where gold step IS found):")
+    found = [r for r in records if r["gs_rew_rfe"] is not None]
+    rfe_c = Counter(r["gs_rew_rfe"] for r in found)
+    for rfe_val in sorted(rfe_c):
+        sub = [r for r in found if r["gs_rew_rfe"] == rfe_val]
+        ra = sum(r["rew_ok"] for r in sub)
+        label = "last step" if rfe_val == 0 else f"{rfe_val} step(s) before last"
+        print(f"    rfe={rfe_val} ({label}): {rfe_c[rfe_val]:>4} pairs  rew_acc={pct(ra, rfe_c[rfe_val])}")
+
+    print()
+    print("  Controlling for Q1 bridge entity correctness:")
+    for cls, label in [("GOLD_LAST_BOTH","gold last in both"), ("GOLD_PUSHED_EARLIER","gold pushed earlier")]:
+        subset = [r for r in records if r["order_class"] == cls]
+        for q1v, q1_lbl in [(True,"Q1 correct"), (False,"Q1 wrong")]:
+            sub = [r for r in subset if r.get("q1_correct") == q1v]
+            if not sub: continue
+            oa = sum(r["orig_ok"] for r in sub)
+            ra = sum(r["rew_ok"] for r in sub)
+            deg = sum(1 for r in sub if r["orig_ok"] and not r["rew_ok"])
+            print(f"    {cls} × {q1_lbl}: n={len(sub):>3}  rew_acc={pct(ra,len(sub)):>6}  "
+                  f"degrade={pct(deg,oa):>6} ({deg}/{oa})")
+    print(f"""
+  Finding: order change alone is NOT the controlling variable.
+  Within each order class, Q1 bridge entity correctness determines
+  accuracy: Q1-correct → ~15% degrade; Q1-wrong → ~80% degrade.
+  The gold step being pushed earlier (rfe>0) is a secondary effect
+  caused by verification steps inserted after the gold step.
+""")
+
 
 def print_examples(records):
     print(SEP)
-    print("  EXAMPLES")
+    print("  EXAMPLES: Original Question vs Rewrite — Decomposition Comparison")
     print(SEP2)
 
     def show(r, title):
-        print(f"\n  [{title}]")
-        print(f"  Question : {r['orig_question']}")
-        print(f"  Gold     : {r['gold']}")
-        print(f"  Bridge entity (Hop1 answer in original): {r['bridge_orig']}")
-        print()
-        print(f"  Original chain ({r['n_orig']} steps):")
-        for q in r["orig_decomp"]:
-            lbl = q["label"]; txt = q.get("text", "")[:65]
-            ans = r["orig_inter"].get(lbl, "")
-            gs  = r["gs_orig"]
-            tag = "  ← Hop1 (bridge)" if lbl == (gs["ref_label"] if gs else None) else \
-                  "  ← Hop2 / gold relation step" if gs and lbl == gs["label"] else ""
-            print(f"    {lbl}: {txt}")
-            print(f"         → {str(ans)[:65]}{tag}")
-        print()
-        print(f"  Rewrite Q1 : {r['rew_q1_text'][:75]}")
-        print(f"               → {str(r['rew_q1_answer'])[:65]}")
-        print(f"  Q1 correct : {r['q1_correct']}   (expected bridge: {str(r['bridge_orig'])[:40]})")
-        print()
-        print(f"  Rewrite chain ({r['n_rew']} steps):")
+        gs_o = r["gs_orig"]
         gs_r = r["gs_rew"]
-        for q in r["rew_decomp"]:
-            lbl = q["label"]; txt = q.get("text", "")[:65]
-            ans = r["rew_inter"].get(lbl, "")
-            tag = "  ← gold relation step" if gs_r and lbl == gs_r["label"] else ""
-            fe  = "  [wrong bridge entity input]" if gs_r and lbl == gs_r["label"] and not r["gold_step_correct_bridge"] else ""
-            print(f"    {lbl}: {txt}")
-            print(f"         → {str(ans)[:65]}{tag}{fe}")
-        print(f"  Outcome: orig={'✓' if r['orig_ok'] else '✗'}  rew={'✓' if r['rew_ok'] else '✗'}"
-              f"   q1_class: {r['q1_class']}")
+        hop1_ref = gs_o["ref_label"] if gs_o else None  # label of the Hop1 step in original
 
-    # 1. Q1 correct → both succeed
+        print(f"\n  ┌─ [{title}]")
+        print(f"  │  Gold answer  : {r['gold']}")
+        print(f"  │  Bridge entity: {r['bridge_orig']}   (= answer to Hop1)")
+        print(f"  │")
+
+        # ── side-by-side question ─────────────────────────────────────────────
+        oq = r["orig_question"]
+        rq = r["rew_question"]
+        print(f"  │  ORIGINAL QUESTION  : {oq}")
+        print(f"  │  REWRITE  QUESTION  : {rq}")
+        print(f"  │")
+
+        # ── original decomposition ────────────────────────────────────────────
+        print(f"  │  ORIGINAL DECOMPOSITION ({r['n_orig']} steps)")
+        print(f"  │  ─────────────────────────────────────────────")
+        for q in r["orig_decomp"]:
+            lbl = q["label"]; txt = q.get("text", "")
+            ans = r["orig_inter"].get(lbl, "")
+            if lbl == hop1_ref:
+                role = "[Hop1 → bridge entity]"
+            elif gs_o and lbl == gs_o["label"]:
+                role = "[Hop2 / gold step]"
+            else:
+                role = ""
+            print(f"  │    {lbl}: {txt}")
+            print(f"  │         → {str(ans)[:70]}  {role}")
+
+        # ── rewrite decomposition ─────────────────────────────────────────────
+        print(f"  │")
+        print(f"  │  REWRITE DECOMPOSITION ({r['n_rew']} steps)")
+        print(f"  │  ─────────────────────────────────────────────")
+        hop1_pos = r["first_correct_pos"]
+        for i, q in enumerate(r["rew_decomp"]):
+            lbl = q["label"]; txt = q.get("text", "")
+            ans = r["rew_inter"].get(lbl, "")
+            # tag role
+            is_gold = gs_r and lbl == gs_r["label"]
+            is_hop1_pos = (i == hop1_pos) and i > 0  # correct bridge appears here (but not Q1)
+            is_q1 = (i == 0)
+            if is_q1 and r["q1_correct"]:
+                role = "[Q1 = added constraint  ✓ retrieves correct bridge entity]"
+            elif is_q1:
+                role = "[Q1 = added constraint  ✗ retrieves WRONG entity]"
+            elif is_hop1_pos:
+                role = f"[Hop1 found here at {lbl} — bridge entity recovered]"
+            elif is_gold and r["gold_step_correct_bridge"]:
+                role = "[Hop2 / gold step  — correct bridge entity as input  ✓]"
+            elif is_gold:
+                role = "[Hop2 / gold step  — WRONG bridge entity as input  ✗]"
+            else:
+                role = ""
+            print(f"  │    {lbl}: {txt}")
+            print(f"  │         → {str(ans)[:70]}  {role}")
+
+        orig_sym = "✓" if r["orig_ok"] else "✗"
+        rew_sym  = "✓" if r["rew_ok"]  else "✗"
+        hop1_shift = f"Q1→Q{hop1_pos+1}" if hop1_pos is not None and hop1_pos > 0 else \
+                     ("Q1 (no shift)" if hop1_pos == 0 else "Hop1 lost")
+        print(f"  │")
+        print(f"  └─ orig={orig_sym}  rew={rew_sym}  |  Hop1 position: orig=Q1 → rew={hop1_shift}"
+              f"  |  class: {r['q1_class']}")
+
+    # ── example 1: Q1 correct, order preserved ────────────────────────────────
     ex = next((r for r in records
                if r["q1_class"] == "Q1_CORRECT" and r["acc_group"] == "BOTH_CORRECT"), None)
     if ex:
-        show(ex, "Q1_CORRECT — rewrite Q1 finds the right bridge entity, chain succeeds")
+        show(ex, "Q1 CORRECT — rewrite Q1 retrieves correct bridge entity, no order shift")
 
-    # 2. Q1 wrong → wrong bridge propagated → fails
+    # ── example 2: Q1 wrong, Hop1 lost → wrong bridge propagated to gold step ─
     ex = next((r for r in records
                if r["q1_class"] == "Q1_WRONG_NOT_FOUND" and r["acc_group"] == "ORIG_BETTER"), None)
     if ex:
-        show(ex, "Q1_WRONG_NOT_FOUND — wrong bridge entity, gold answer never reached")
+        show(ex, "Q1 WRONG / HOP1 LOST — Hop1 never found in rewrite, gold step gets wrong input")
 
-    # 3. Q1 wrong, correct entity found later but not used → fails
+    # ── example 3: Q1 wrong, Hop1 shifted to Q2 but ignored ──────────────────
     ex = next((r for r in records
-               if r["q1_class"] == "Q1_WRONG_FOUND_NOT_USED" and r["acc_group"] == "ORIG_BETTER"), None)
+               if r["q1_class"] == "Q1_WRONG_FOUND_NOT_USED"
+               and r["acc_group"] == "ORIG_BETTER"
+               and r["first_correct_pos"] == 1), None)
     if ex:
-        show(ex, "Q1_WRONG_FOUND_NOT_USED — correct entity appears later but gold step ignores it")
+        show(ex, "Q1 WRONG / HOP1 SHIFTED TO Q2 but gold step ignores it")
 
-    # 4. Q1 wrong, correct entity found and used → succeeds
+    # ── example 4: Q1 wrong, Hop1 shifted and recovered → gold step corrected ─
     ex = next((r for r in records
-               if r["q1_class"] == "Q1_WRONG_RECOVERED" and r["acc_group"] == "BOTH_CORRECT"), None)
+               if r["q1_class"] == "Q1_WRONG_RECOVERED"), None)
     if ex:
-        show(ex, "Q1_WRONG_RECOVERED — correct entity found later AND used by gold step")
+        show(ex, "Q1 WRONG / HOP1 RECOVERED — correct entity found later and used by gold step")
     print()
 
 
@@ -812,9 +1203,11 @@ def main():
 
     print("Generating figures ...")
     fig_overall(records)
+    fig_q1_comparison(records)
     fig_q1_selectivity(records)
     fig_bridge_entity_impact(records)
     fig_bridge_recovery_position(records)
+    fig_order_analysis(records)
     fig_summary(records)
     print()
 
@@ -823,11 +1216,13 @@ def main():
 
     print(SEP)
     print(f"  Figures → {FIG_DIR}/")
-    print("  fig1_overall_accuracy.png       — overall accuracy: original vs rewrite")
-    print("  fig2_q1_selectivity.png         — Q1 outcome class distribution + accuracy")
-    print("  fig3_bridge_entity_impact.png   — accuracy when bridge entity correct vs wrong")
-    print("  fig4_bridge_recovery_position.png — where correct entity appears in rewrite")
-    print("  fig5_summary.png                — causal chain: Q1 → bridge → accuracy")
+    print("  fig1_overall_accuracy.png         — overall accuracy: original vs rewrite")
+    print("  fig2_q1_comparison.png            — Q1 accuracy (orig 94.8% vs rew 56.0%) + Hop1 shift")
+    print("  fig3_q1_selectivity.png           — Q1 outcome class distribution + accuracy")
+    print("  fig4_bridge_entity_impact.png     — accuracy when bridge entity correct vs wrong")
+    print("  fig5_bridge_recovery_position.png — where correct entity appears in rewrite")
+    print("  fig6_order_analysis.png           — gold step position shift original→rewrite")
+    print("  fig7_summary.png                  — causal chain: Q1 → bridge → accuracy")
     print(SEP)
 
 
