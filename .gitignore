@@ -3,7 +3,7 @@ embeddings/
 eval_datasets/
 
 # OS files
-.claude
+*.claude
 .claude/
 .DS_Store
 Thumbs.db
