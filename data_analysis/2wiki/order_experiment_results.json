@@ -1,0 +1,4550 @@
+{
+  "group_stats": {
+    "BOTH_CORRECT": {
+      "n": 111,
+      "rewrite_has_verif_step": {
+        "count": 109,
+        "pct": 98.2
+      },
+      "verif_gate_yes": {
+        "count": 18,
+        "pct": 16.2
+      },
+      "verif_gate_no": {
+        "count": 10,
+        "pct": 9.0
+      },
+      "gold_in_rewrite_inter": {
+        "count": 105,
+        "pct": 94.6
+      },
+      "gold_in_original_inter": {
+        "count": 106,
+        "pct": 95.5
+      },
+      "avg_extra_questions": 0.68
+    },
+    "BOTH_WRONG": {
+      "n": 64,
+      "rewrite_has_verif_step": {
+        "count": 63,
+        "pct": 98.4
+      },
+      "verif_gate_yes": {
+        "count": 6,
+        "pct": 9.4
+      },
+      "verif_gate_no": {
+        "count": 20,
+        "pct": 31.2
+      },
+      "gold_in_rewrite_inter": {
+        "count": 15,
+        "pct": 23.4
+      },
+      "gold_in_original_inter": {
+        "count": 21,
+        "pct": 32.8
+      },
+      "avg_extra_questions": 0.94
+    },
+    "REWRITE_BETTER": {
+      "n": 14,
+      "rewrite_has_verif_step": {
+        "count": 13,
+        "pct": 92.9
+      },
+      "verif_gate_yes": {
+        "count": 1,
+        "pct": 7.1
+      },
+      "verif_gate_no": {
+        "count": 2,
+        "pct": 14.3
+      },
+      "gold_in_rewrite_inter": {
+        "count": 13,
+        "pct": 92.9
+      },
+      "gold_in_original_inter": {
+        "count": 4,
+        "pct": 28.6
+      },
+      "avg_extra_questions": 0.86
+    },
+    "ORIGINAL_BETTER": {
+      "n": 102,
+      "rewrite_has_verif_step": {
+        "count": 99,
+        "pct": 97.1
+      },
+      "verif_gate_yes": {
+        "count": 11,
+        "pct": 10.8
+      },
+      "verif_gate_no": {
+        "count": 36,
+        "pct": 35.3
+      },
+      "gold_in_rewrite_inter": {
+        "count": 19,
+        "pct": 18.6
+      },
+      "gold_in_original_inter": {
+        "count": 77,
+        "pct": 75.5
+      },
+      "avg_extra_questions": 0.94
+    }
+  },
+  "failure_types_ORIGINAL_BETTER": {
+    "B_CORRECT_INTER_WRONG_FINAL": 19,
+    "A_WRONG_ENTITY_CASCADE_explicit": 31,
+    "E_DATE_COMPARISON_FAILURE": 17,
+    "A_WRONG_ENTITY_CASCADE_silent": 31,
+    "C_FORMAT_MISMATCH": 4
+  },
+  "failure_types_ORIGINAL_BETTER_A_total": 62,
+  "failure_detail": [
+    {
+      "id": "8974f9a00bb011ebab90acde48001122::0",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Crown Prince Hyomyeong"
+      ],
+      "original_question": "Who is the father-in-law of Queen Hyojeong?",
+      "rewrite_question": "Which member of the House of Yi, whose name is rendered as Hŏnjong in McCune–Reischauer romanization and who died of disease, was the husband of Queen Hyojeong, and who is also the son of the person you are seeking?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Queen Hyojeong?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the spouse of Queen Hyojeong?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the father of #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Queen Hyojeong's husband?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the name of the person in #1 in McCune–Reischauer romanization?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the father of the person in #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "King Heonjong of Joseon",
+        "Q2": "Hyonjong",
+        "Q3": "Crown Prince Hyomyeong"
+      },
+      "rewrite_prediction": "King Heonjong of Joseon",
+      "verif_gate": "none",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "b2fd3ef40bdd11eba7f7acde48001122::2",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Chumki Chowdhury"
+      ],
+      "original_question": "Who is the child of the director of film Mukhyamantri (1996 Film)?",
+      "rewrite_question": "Which individual is the child of the person whose country of citizenship includes the British Raj, Dominion of India, and India, and who, born on November 25, 1944, also directed the film Mukhyamantri (1996 Film)?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Mukhyamantri (1996)?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the child of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the person whose country of citizenship includes the British Raj, Dominion of India, and India?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who was born on November 25, 1944, and directed the film Mukhyamantri (1996 Film)?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the person in #2 the same as the person in #1?"
+        },
+        {
+          "label": "Q4",
+          "text": "Who is the child of the person identified in #3?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Pandit Jawaharlal Nehru",
+        "Q2": "Anjan Choudhury",
+        "Q3": "no",
+        "Q4": "Frances Bean Cobain"
+      },
+      "rewrite_prediction": "Frances Bean Cobain",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "19041a7f08e111ebbda2ac1f6bf848b6::3",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Halcón Suriano Jr."
+      ],
+      "original_question": "Who is younger, Halcón Suriano Jr. or Pierre De Geyter?",
+      "rewrite_question": "Between the individual whose birth date falls on May 8, 1994, and the composer whose birth date is October 8, 1848—a date that was a Sunday and is part of October 1848—which one is younger?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the birthdate of Halcón Suriano Jr.?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the birthdate of Pierre De Geyter?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 younger than #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the age of the individual born on May 8, 1994?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the age of the composer born on October 8, 1848?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 younger than #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "24",
+        "Q2": "70",
+        "Q3": "yes"
+      },
+      "rewrite_prediction": "The individual born on May 8, 1994.",
+      "verif_gate": "yes",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "5c83d5960bde11eba7f7acde48001122::5",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "St. John's College, Cambridge"
+      ],
+      "original_question": "Where did Edward Hoby's father study?",
+      "rewrite_question": "Which college did the individual who was awarded the title of Knight Bachelor, is described in the Dictionary of National Biography, 1885–1900, and is also the father of Edward Hoby, attend?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Edward Hoby's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 study?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was awarded the title of Knight Bachelor and is described in the Dictionary of National Biography, 1885–1900?"
+        },
+        {
+          "label": "Q2",
+          "text": "Is the individual identified in #1 the father of Edward Hoby?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which college did the individual in #1 attend?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Sir William Comer Petheram",
+        "Q2": "no",
+        "Q3": "University of Calcutta"
+      },
+      "rewrite_prediction": "Trinity College, Cambridge",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "3d1d9fe40bb011ebab90acde48001122::6",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "James Hamilton"
+      ],
+      "original_question": "Who is Lord Herbert Montagu Douglas Scott's maternal grandfather?",
+      "rewrite_question": "Who is the maternal grandfather of the woman who is the mother of Francis George Montagu-Douglas-Scott, George Montagu-Douglas-Scott, John Montagu Douglas Scott, 7th Duke of Buccleuch, and Katharine Mary Montagu Douglas Scott, and is also the mother of Lord Herbert Montagu Douglas Scott?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Lord Herbert Montagu Douglas Scott's mother?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the mother of Francis George Montagu-Douglas-Scott, George Montagu-Douglas-Scott, John Montagu Douglas Scott, 7th Duke of Buccleuch, and Katharine Mary Montagu Douglas Scott?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the maternal grandfather of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Lady Margaret Alice \"Molly\" Bridgeman",
+        "Q2": "George Bridgeman, 4th Earl of Bradford"
+      },
+      "rewrite_prediction": "George Bridgeman, 4th Earl of Bradford",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "671322a00bde11eba7f7acde48001122::9",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "London"
+      ],
+      "original_question": "Where was the place of death of Suzanne Farrington's mother?",
+      "rewrite_question": "In which city did the actress who was a cast member of both 'Gone with the Wind' and 'Brother, Can You Spare a Dime', who also studied at the Royal Academy of Dramatic Art, suffered from bipolar disorder, and is the mother of Suzanne Farrington, die?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Suzanne Farrington's mother?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 die?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the actress that was a cast member of both 'Gone with the Wind' and 'Brother, Can You Spare a Dime'?"
+        },
+        {
+          "label": "Q2",
+          "text": "Did #1 study at the Royal Academy of Dramatic Art?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did #1 suffer from bipolar disorder?"
+        },
+        {
+          "label": "Q4",
+          "text": "Is #1 the mother of Suzanne Farrington?"
+        },
+        {
+          "label": "Q5",
+          "text": "In which city did #1 die?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Joan Fontaine",
+        "Q2": "yes",
+        "Q3": "No",
+        "Q4": "no",
+        "Q5": "Paris"
+      },
+      "rewrite_prediction": "Paris",
+      "verif_gate": "yes",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "8715f72a0bda11eba7f7acde48001122::10",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Newport, Wales"
+      ],
+      "original_question": "Where was the director of film Eisenstein In Guanajuato born?",
+      "rewrite_question": "In which city was the screenwriter who is commemorated on the Stars Promenade in Gdańsk, exhibited creator of The Arts for Television, and also directed Eisenstein In Guanajuato born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Eisenstein In Guanajuato?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the screenwriter commemorated on the Stars Promenade in Gdańsk?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the name of the creator of The Arts for Television?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who directed Eisenstein In Guanajuato?"
+        },
+        {
+          "label": "Q4",
+          "text": "In which city was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Marek Hłasko",
+        "Q2": "Bruno de Almeida",
+        "Q3": "Peter Greenaway",
+        "Q4": "Kraków"
+      },
+      "rewrite_prediction": "Kraków",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "9a55ba400bdb11eba7f7acde48001122::13",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Churcher's College"
+      ],
+      "original_question": "Where did the director of film Man Detained graduate from?",
+      "rewrite_question": "Which educational institution did the British national, born on May 18, 1924 and deceased on November 27, 2008, who also directed the film Man Detained, graduate from?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Man Detained?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 graduate from?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the British national born on May 18, 1924, and deceased on November 27, 2008?"
+        },
+        {
+          "label": "Q2",
+          "text": "Which educational institution did #1 graduate from?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Jeremy Joseph Fry",
+        "Q2": "Trinity College, Oxford"
+      },
+      "rewrite_prediction": "Trinity College, Oxford",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "35f99ea60bde11eba7f7acde48001122::15",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Florida"
+      ],
+      "original_question": "Where was the place of death of the director of film The First Day Of Freedom?",
+      "rewrite_question": "In which location did the recipient of the Silver Medal for Merit in the Field of Glory and the Work Flag Order (1st and 2nd class), who also directed The First Day Of Freedom, pass away?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film The First Day Of Freedom?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 die?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the recipient of the Silver Medal for Merit in the Field of Glory and the Work Flag Order (1st and 2nd class)?"
+        },
+        {
+          "label": "Q2",
+          "text": "Did the person in #1 direct The First Day Of Freedom?"
+        },
+        {
+          "label": "Q3",
+          "text": "In which location did the person in #1 pass away?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Vladimir Putin",
+        "Q2": "no",
+        "Q3": "Moscow"
+      },
+      "rewrite_prediction": "Moscow",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "519aee780baf11ebab90acde48001122::21",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Henrietta Maria of France"
+      ],
+      "original_question": "Who is Catherine Fitzcharles's paternal grandmother?",
+      "rewrite_question": "Which woman, whose family is part of the Carolingian dynasty and who is described by both the New International Encyclopedia and The Nuttall Encyclopædia, is the paternal grandmother of Catherine Fitzcharles?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Catherine Fitzcharles's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is #1's mother?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Catherine Fitzcharles's paternal grandmother?"
+        },
+        {
+          "label": "Q2",
+          "text": "Which woman, whose family is part of the Carolingian dynasty, is described by both the New International Encyclopedia and The Nuttall Encyclopædia?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 the same as #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Catherine Pegge",
+        "Q2": "Bertrada of Laon",
+        "Q3": "No"
+      },
+      "rewrite_prediction": "Bertrada of Laon",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "c02763f708be11ebbd8aac1f6bf848b6::32",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Ángel Recasens"
+      ],
+      "original_question": "Who lived longer, Jean Grémillon or Ángel Recasens?",
+      "rewrite_question": "Between the individual whose date of birth falls on a Thursday in October 1901 and whose date of death was a Wednesday in November 1959, and the person born on a Friday in March 1938, who passed away in August 2007, which one lived longer?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "How long did Jean Grémillon live?"
+        },
+        {
+          "label": "Q2",
+          "text": "How long did Ángel Recasens live?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did #1 live longer than #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "How many years did the first individual live?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the date of birth of the first individual?"
+        },
+        {
+          "label": "Q3",
+          "text": "What is the date of death of the first individual?"
+        },
+        {
+          "label": "Q4",
+          "text": "How many years did the second individual live?"
+        },
+        {
+          "label": "Q5",
+          "text": "What is the date of birth of the second individual?"
+        },
+        {
+          "label": "Q6",
+          "text": "What is the date of death of the second individual?"
+        },
+        {
+          "label": "Q7",
+          "text": "Which individual lived longer, #1 or #4?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "112",
+        "Q2": "March 1851",
+        "Q3": "September 14, 1899",
+        "Q4": "86",
+        "Q5": "14 March 1691",
+        "Q6": "1793",
+        "Q7": "112"
+      },
+      "rewrite_prediction": "The person born in 1938 and died in 2007 lived longer.",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "b41511480bda11eba7f7acde48001122::34",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Paris"
+      ],
+      "original_question": "Where was the place of death of the director of film Touki Bouki?",
+      "rewrite_question": "In which city did the filmmaker who was described by both African Film Festival, Inc and the Dictionary of African Biography, and who also directed the film Touki Bouki, die?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Touki Bouki?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 die?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the filmmaker described by both African Film Festival, Inc and the Dictionary of African Biography?"
+        },
+        {
+          "label": "Q2",
+          "text": "Did the filmmaker in #1 direct the film Touki Bouki?"
+        },
+        {
+          "label": "Q3",
+          "text": "In which city did the filmmaker in #1 die?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Ousmane Sembène",
+        "Q2": "no",
+        "Q3": "Paris"
+      },
+      "rewrite_prediction": "Dakar",
+      "verif_gate": "no",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "387c056e0bda11eba7f7acde48001122::37",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "National Artist of the Philippines"
+      ],
+      "original_question": "Which award the director of film Ang Padrino won?",
+      "rewrite_question": "Which award was received by the actor who was educated at Mapúa University and the University of the East, and who also directed the film Ang Padrino?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Ang Padrino?"
+        },
+        {
+          "label": "Q2",
+          "text": "Which awards has #1 won?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the actor educated at Mapúa University and the University of the East?"
+        },
+        {
+          "label": "Q2",
+          "text": "Did #1 direct the film Ang Padrino?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which award did #1 receive?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Ime Bishop",
+        "Q2": "no",
+        "Q3": "Okon Lagos or Udo Yes"
+      },
+      "rewrite_prediction": "FAMAS Award",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "1dda782c0bde11eba7f7acde48001122::43",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Kerala"
+      ],
+      "original_question": "What is the place of birth of the composer of film Raagam Thaanam Pallavi?",
+      "rewrite_question": "In which place was the music composer who received the Kerala State Film Award for Best Music Director and also composed the score for the film Raagam Thaanam Pallavi born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the composer of the film Raagam Thaanam Pallavi?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the place of birth of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the music composer that received the Kerala State Film Award for Best Music Director?"
+        },
+        {
+          "label": "Q2",
+          "text": "Did #1 compose the score for the film Raagam Thaanam Pallavi?"
+        },
+        {
+          "label": "Q3",
+          "text": "In which place was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Jerome Thomas Veleeparambil",
+        "Q2": "no",
+        "Q3": "Boulogne- Billancourt"
+      },
+      "rewrite_prediction": "Pannaipuram, Tamil Nadu",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "6d273fd80bb011ebab90acde48001122::45",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Walter Leslie"
+      ],
+      "original_question": "Who is the paternal grandfather of Euphemia Ii, Countess Of Ross?",
+      "rewrite_question": "Who is the paternal grandfather of the noblewoman whose father, Alexander Leslie, had the family name Leslie, was a Christian minister, and resided in both Anstruther Wester and Ceres, and who is known as Euphemia II, Countess of Ross?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Euphemia II, Countess of Ross?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of Euphemia II, Countess of Ross?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the father of #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Euphemia II, Countess of Ross?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is Alexander Leslie, the father of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "What is the family name of Alexander Leslie?"
+        },
+        {
+          "label": "Q4",
+          "text": "Where did Alexander Leslie reside?"
+        },
+        {
+          "label": "Q5",
+          "text": "Who is the paternal grandfather of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "the daughter of Alexander Leslie, Earl of Ross and his wife Isabella Stewart",
+        "Q2": "Walter Leslie, Lord of Ross",
+        "Q3": "Leslie",
+        "Q4": "Scotland",
+        "Q5": "Robert Stewart, 1st Duke of Albany"
+      },
+      "rewrite_prediction": "Robert Stewart, 1st Duke of Albany",
+      "verif_gate": "none",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "b51245640bdc11eba7f7acde48001122::47",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Vyškov"
+      ],
+      "original_question": "What is the place of birth of the director of film Love Between The Raindrops?",
+      "rewrite_question": "In which place was the actor and cinematographer, who appeared as a cast member in both Golden Sixties and The Elementary School and also directed the film Love Between The Raindrops, born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Love Between The Raindrops?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the place of birth of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the actor and cinematographer that appeared in both Golden Sixties and The Elementary School?"
+        },
+        {
+          "label": "Q2",
+          "text": "Did #1 direct the film Love Between The Raindrops?"
+        },
+        {
+          "label": "Q3",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Timothy Suhrstedt",
+        "Q2": "no",
+        "Q3": "August 5, 1948"
+      },
+      "rewrite_prediction": "New York City",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "3d20c7000bb011ebab90acde48001122::54",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Odo III, Duke of Burgundy"
+      ],
+      "original_question": "Who is Adelaide Of Burgundy, Duchess Of Brabant's paternal grandfather?",
+      "rewrite_question": "Who is the paternal grandfather of the noblewoman who became Duchess of Brabant through marriage and is the daughter of Hugh IV, Duke of Burgundy, whose own father held the title of Duke of Burgundy?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was Adelaide of Burgundy, Duchess of Brabant's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who was the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the noblewoman who became Duchess of Brabant through marriage?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "What is the name of the father of Hugh IV, Duke of Burgundy?"
+        },
+        {
+          "label": "Q4",
+          "text": "Who is the paternal grandfather of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Margaret of Flanders",
+        "Q2": "Guy of Dampierre",
+        "Q3": "Odo III",
+        "Q4": "Thierry, Count of Flanders"
+      },
+      "rewrite_prediction": "Thierry, Count of Flanders",
+      "verif_gate": "none",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "3524786c084f11ebbd56ac1f6bf848b6::56",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Bradley Dredge"
+      ],
+      "original_question": "Who was born later, Allan Havey or Bradley Dredge?",
+      "rewrite_question": "Between the individual whose birth date falls on September 19, 1954, and the person born on July 6, 1973—a date that was a Friday and is part of July 1973—which one was born later?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "When was Allan Havey born?"
+        },
+        {
+          "label": "Q2",
+          "text": "When was Bradley Dredge born?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the birth date in #2 later than the birth date in #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the birth date of the first individual?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the birth date of the second individual?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which date in #1 or #2 is later?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "March 1851",
+        "Q2": "January 16, 1948",
+        "Q3": "January 16, 1948"
+      },
+      "rewrite_prediction": "July 6, 1973",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "8dd0b4be08f711ebbdaaac1f6bf848b6::57",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Sharon Richardson"
+      ],
+      "original_question": "Who was born later, Franz Xaver Haberl or Sharon Richardson?",
+      "rewrite_question": "Between the individual whose birth date, April 12, 1840, falls on a Sunday and is part of April 1840, and the person born on May 26, 1943, who was born more recently?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "When was Franz Xaver Haberl born?"
+        },
+        {
+          "label": "Q2",
+          "text": "When was Sharon Richardson born?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the birth date of #2 later than the birth date of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the birth date of the first individual?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the birth date of the second individual?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which birth date is more recent, #1 or #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "March 1851",
+        "Q2": "January 16, 1980",
+        "Q3": "January 16, 1980"
+      },
+      "rewrite_prediction": "May 26, 1943",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "916a1f4a0bd911eba7f7acde48001122::59",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "American"
+      ],
+      "original_question": "What nationality is the director of film Astronauts Gone Wild?",
+      "rewrite_question": "What is the country of citizenship of the filmmaker whose given name is Bart, whose family name is Sibrel, who was born on January 1, 1964, and who also directed the film Astronauts Gone Wild?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Astronauts Gone Wild?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the nationality of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the nationality of Bart Sibrel?"
+        },
+        {
+          "label": "Q2",
+          "text": "Is Bart Sibrel the filmmaker who directed the film Astronauts Gone Wild?"
+        },
+        {
+          "label": "Q3",
+          "text": "What is the country of citizenship of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "American",
+        "Q2": "Yes",
+        "Q3": "United States"
+      },
+      "rewrite_prediction": "United States",
+      "verif_gate": "yes",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "21832f3c0bde11eba7f7acde48001122::63",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Italy"
+      ],
+      "original_question": "Where was the place of death of John Ii Of Luxembourg, Count Of Ligny's father?",
+      "rewrite_question": "In which country did the nobleman who held the title Lord of Beauvoir, served as a military commander, and was the father of John II of Luxembourg, Count of Ligny, die?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was John II of Luxembourg, Count of Ligny's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 die?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the nobleman referred to as the Lord of Beauvoir?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the title of the nobleman in #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "What is the relationship between the nobleman in #1 and John II of Luxembourg, Count of Ligny?"
+        },
+        {
+          "label": "Q4",
+          "text": "In which country did the nobleman in #1 serve as a military commander?"
+        },
+        {
+          "label": "Q5",
+          "text": "In which country did the nobleman in #1 die?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Waleran II of Luxembourg",
+        "Q2": "Lord of Ligny",
+        "Q3": "father",
+        "Q4": "France",
+        "Q5": "France"
+      },
+      "rewrite_prediction": "France",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "2151e72a0bb011ebab90acde48001122::64",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Outey"
+      ],
+      "original_question": "Who is Kaev Hua Ii's paternal grandfather?",
+      "rewrite_question": "Who is the paternal grandfather of the monarch whose date of birth is January 1, 1579, whose mother is Chakrapati, and whose father is Preah Satha I?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Kaev Hua Ii's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the monarch born on January 1, 1579?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the paternal grandfather of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Philip III",
+        "Q2": "King Philip II of Spain",
+        "Q3": "King Philip II of Spain"
+      },
+      "rewrite_prediction": "King Philip II of Spain",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "1d2ccae80bdd11eba7f7acde48001122::65",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Amherst, Nova Scotia"
+      ],
+      "original_question": "Where was the husband of Frances Tupper born?",
+      "rewrite_question": "In which place was the English-speaking author whose works include those authored by Marc A Shampo and R A Kyle, who is also the husband of Frances Tupper, born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the husband of Frances Tupper?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the English-speaking author whose works include those authored by Marc A Shampo and R A Kyle?"
+        },
+        {
+          "label": "Q2",
+          "text": "Is the author in #1 the husband of Frances Tupper?"
+        },
+        {
+          "label": "Q3",
+          "text": "In which place was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Robert Kyle Grenville Temple",
+        "Q2": "no",
+        "Q3": "1945"
+      },
+      "rewrite_prediction": "Robert Kyle",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "4ec7cb7c0bdb11eba7f7acde48001122::77",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Richmond, Indiana"
+      ],
+      "original_question": "What is the place of birth of the composer of film Salome (1953 Film)?",
+      "rewrite_question": "In which city was the composer who was nominated for the Academy Award for Best Original Dramatic or Comedy Score, also nominated for the Academy Award for Best Original Musical Score, and who composed the film Salome (1953 Film) born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the composer of the film Salome (1953 Film)?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the place of birth of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the composer nominated for both the Academy Award for Best Original Dramatic or Comedy Score and the Academy Award for Best Original Musical Score?"
+        },
+        {
+          "label": "Q2",
+          "text": "Did #1 compose the film Salome (1953 Film)?"
+        },
+        {
+          "label": "Q3",
+          "text": "In which city was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Thomas Newman",
+        "Q2": "no",
+        "Q3": "Perivale"
+      },
+      "rewrite_prediction": "Munich",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "381f9d94086811ebbd5eac1f6bf848b6::80",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "George Sidney"
+      ],
+      "original_question": "Who is younger, Alfred Staines or George Sidney?",
+      "rewrite_question": "Who is younger: the person whose birth date falls on a Tuesday and is part of May 1838, or the individual whose birth date is October 4, 1916?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is Alfred Staines's date of birth?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is George Sidney's date of birth?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 later than #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the birth date of the person whose birth date falls on a Tuesday in May 1838?"
+        },
+        {
+          "label": "Q2",
+          "text": "How old is the person born on #1 as of today?"
+        },
+        {
+          "label": "Q3",
+          "text": "How old is the person born on October 4, 1916, as of today?"
+        },
+        {
+          "label": "Q4",
+          "text": "Is #2 younger than #3?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "March 21, 1838",
+        "Q2": "85 years",
+        "Q3": "102",
+        "Q4": "yes"
+      },
+      "rewrite_prediction": "The person born on March 21, 1838.",
+      "verif_gate": "yes",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "f9ac302a0bd911eba7f7acde48001122::83",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Kiev"
+      ],
+      "original_question": "Where was the wife of Vladimir Feldman born?",
+      "rewrite_question": "In which city was the chess player who participated in the Women's Chess Olympiad 2000, 2002, 2004, and 2006 and is also the wife of Vladimir Feldman born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the wife of Vladimir Feldman?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the chess player that participated in the Women's Chess Olympiad in 2000, 2002, 2004, and 2006?"
+        },
+        {
+          "label": "Q2",
+          "text": "Is the chess player in #1 the wife of Vladimir Feldman?"
+        },
+        {
+          "label": "Q3",
+          "text": "In which city was the chess player in #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Xu Yuhua",
+        "Q2": "no",
+        "Q3": "Binzhou"
+      },
+      "rewrite_prediction": "Moscow",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "90bad89e0bdb11eba7f7acde48001122::90",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "San Juan, Puerto Rico"
+      ],
+      "original_question": "What is the place of birth of the director of film Dawn Of Life?",
+      "rewrite_question": "In which city was the film director, whose family name is Cortés, who was born on October 4, 1909, and who also directed Dawn Of Life, born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Dawn Of Life?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the place of birth of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the film director with the family name Cortés, born on October 4, 1909?"
+        },
+        {
+          "label": "Q2",
+          "text": "In which city was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Fernando \"Papi\" Cortés",
+        "Q2": "San Juan"
+      },
+      "rewrite_prediction": "San Juan",
+      "verif_gate": "none",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "b118f26308f011ebbda8ac1f6bf848b6::95",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Brahima Cissé"
+      ],
+      "original_question": "Who was born later, Brahima Cissé or Väinö Malmivaara?",
+      "rewrite_question": "Between the individual whose date of birth falls on a Tuesday in February 1976 and the person born on a Friday in November 1879, both of whose birth dates are respectively February 10, 1976 and November 7, 1879, who was born more recently?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "When was Brahima Cissé born?"
+        },
+        {
+          "label": "Q2",
+          "text": "When was Väinö Malmivaara born?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the birth date in #1 later than the birth date in #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the date of birth for the individual born on a Tuesday in February 1976?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the date of birth for the person born on a Friday in November 1879?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which date is more recent, #1 or #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "April 4, 1976",
+        "Q2": "November 1, 1879",
+        "Q3": "April 4, 1976"
+      },
+      "rewrite_prediction": "The individual born on February 10, 1976.",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "df77d6d40baf11ebab90acde48001122::97",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Eleanor of Aquitaine"
+      ],
+      "original_question": "Who is Joan, Lady Of Wales's paternal grandmother?",
+      "rewrite_question": "Who is the paternal grandmother of the woman whose father is King John of England, the same King John whose works are part of the Rosenwald Collection and whose likeness was created by Renold Elstracke?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Joan, Lady of Wales?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of Joan, Lady of Wales?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the mother of #2?"
+        },
+        {
+          "label": "Q4",
+          "text": "What is the name of the paternal grandmother of Joan, Lady of Wales?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the woman whose father is King John of England?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the paternal grandmother of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Eleanor of England",
+        "Q2": "Eleanor of Provence"
+      },
+      "rewrite_prediction": "Eleanor of Provence",
+      "verif_gate": "none",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "deb907f80bdd11eba7f7acde48001122::99",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Bohemia"
+      ],
+      "original_question": "Where was the place of death of Lambert I, Count Of Louvain's father?",
+      "rewrite_question": "In which region did the nobleman who held the title of Count of Hainaut, was the father of Lambert I, Count of Louvain, and was also known for his involvement in the rebellion against Emperor Otto I, die?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was Lambert I, Count of Louvain's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 die?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was the nobleman that held the title of Count of Hainaut?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the relationship between the nobleman in #1 and Lambert I, Count of Louvain?"
+        },
+        {
+          "label": "Q3",
+          "text": "What was the nobleman in #1's involvement in the rebellion against Emperor Otto I?"
+        },
+        {
+          "label": "Q4",
+          "text": "In which region did the nobleman in #1 die?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Baldwin V of Hainaut",
+        "Q2": "son",
+        "Q3": "margrave of Namur",
+        "Q4": "Hainaut"
+      },
+      "rewrite_prediction": "Hainaut",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "32d9179c0bde11eba7f7acde48001122::101",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "American"
+      ],
+      "original_question": "Which country the founder of Osborne Computer Corporation is from?",
+      "rewrite_question": "From which country is the individual who was born on March 6, 1939, educated at the University of Birmingham, and who later founded Osborne Computer Corporation?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the founder of Osborne Computer Corporation?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the nationality of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was born on March 6, 1939, and educated at the University of Birmingham?"
+        },
+        {
+          "label": "Q2",
+          "text": "From which country is #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did #1 found Osborne Computer Corporation?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Alan M. Parker",
+        "Q2": "British",
+        "Q3": "no"
+      },
+      "rewrite_prediction": "British",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "874046160bd911eba7f7acde48001122::103",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "American"
+      ],
+      "original_question": "What is the place of birth of the director of film It'S The Rage (Film)?",
+      "rewrite_question": "What is the birthplace of the producer who co-founded Endgame Entertainment and also directed the film It'S The Rage (Film)?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film It's The Rage?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the place of birth of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who co-founded Endgame Entertainment?"
+        },
+        {
+          "label": "Q2",
+          "text": "Which of the producers in #1 also directed the film It's The Rage?"
+        },
+        {
+          "label": "Q3",
+          "text": "What is the birthplace of the person identified in #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Howard Horowitz",
+        "Q2": "James D. Stern",
+        "Q3": "Los Angeles, California"
+      },
+      "rewrite_prediction": "Los Angeles, California",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "dd4d571a08af11ebbd83ac1f6bf848b6::107",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Henry W. Oliver"
+      ],
+      "original_question": "Who died later, Nükhetsezâ Hanım or Henry W. Oliver?",
+      "rewrite_question": "Between the individual whose death occurred on May 15, 1850—a date that falls on a Wednesday and is part of May 1850—and the person who died on February 8, 1904, who passed away more recently?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "When did Nükhetsezâ Hanım die?"
+        },
+        {
+          "label": "Q2",
+          "text": "When did Henry W. Oliver die?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did #1 die after #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the date of death for the individual who died on May 15, 1850?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the date of death for the individual who died on February 8, 1904?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which date in #1 and #2 is more recent?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "May 16, 1911",
+        "Q2": "February 8, 1904",
+        "Q3": "May 16, 1911"
+      },
+      "rewrite_prediction": "May 16, 1911",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "3ac2e9920bde11eba7f7acde48001122::108",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Egypt"
+      ],
+      "original_question": "Which country Boghos Nubar's father is from?",
+      "rewrite_question": "Which country is associated with the statesman who is described by both the Encyclopædia Britannica 11th edition and the Small Brockhaus and Efron Encyclopedic Dictionary, belongs to the Armenians ethnic group, and is also the father of Boghos Nubar?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Boghos Nubar's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Which country is #1 from?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the statesman described by both the Encyclopædia Britannica 11th edition and the Small Brockhaus and Efron Encyclopedic Dictionary?"
+        },
+        {
+          "label": "Q2",
+          "text": "To which country does #1 belong?"
+        },
+        {
+          "label": "Q3",
+          "text": "What is the ethnicity of #1?"
+        },
+        {
+          "label": "Q4",
+          "text": "Who is the father of Boghos Nubar?"
+        },
+        {
+          "label": "Q5",
+          "text": "Is #1 the same person as #4?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Eleftherios Venizelos",
+        "Q2": "Greek",
+        "Q3": "Greek",
+        "Q4": "Nubar Pasha",
+        "Q5": "No"
+      },
+      "rewrite_prediction": "Armenia",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "7c9a5daa0bd911eba7f7acde48001122::109",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Winnipeg, Manitoba"
+      ],
+      "original_question": "Where was the director of film The Green Fog born?",
+      "rewrite_question": "In which city was the filmmaker who has works in the collection of the Museum of Modern Art, is a Member of the Order of Canada, and also directed The Green Fog born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film The Green Fog?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the filmmaker whose works are in the collection of the Museum of Modern Art?"
+        },
+        {
+          "label": "Q2",
+          "text": "Is the filmmaker in #1 a Member of the Order of Canada?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did the filmmaker in #1 direct The Green Fog?"
+        },
+        {
+          "label": "Q4",
+          "text": "In which city was the filmmaker in #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Bêka & Lemoine",
+        "Q2": "no",
+        "Q3": "no",
+        "Q4": "Paris"
+      },
+      "rewrite_prediction": "Toronto",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "8f8aaf0b088711ebbd6dac1f6bf848b6::110",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Aneta Hladíková"
+      ],
+      "original_question": "Who is younger, Aneta Hladíková or René Poupardin?",
+      "rewrite_question": "Between the person whose birth date, August 30, 1984, fell on a Thursday and is part of August 1984, and the individual born on February 27, 1874, which was a Friday and is part of February 1874, who is younger?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is Aneta Hladíková's date of birth?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is René Poupardin's date of birth?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 later than #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the age of the person born on August 30, 1984?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the age of the person born on February 27, 1874?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 younger than #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "38",
+        "Q2": "141",
+        "Q3": "yes"
+      },
+      "rewrite_prediction": "The person born on August 30, 1984.",
+      "verif_gate": "yes",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "f32458660bae11ebab90acde48001122::111",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Fer Corb"
+      ],
+      "original_question": "Who is the paternal grandfather of Nia Segamain?",
+      "rewrite_question": "Who is the paternal grandfather of the male sovereign who held the position of High King of Ireland and is also the father of Nia Segamain?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Nia Segamain's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was the male sovereign that held the position of High King of Ireland?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of Nia Segamain?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 the same as #2?"
+        },
+        {
+          "label": "Q4",
+          "text": "Who is the paternal grandfather of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Turlough Mór O'Connor / O'Conor",
+        "Q2": "Adamair",
+        "Q3": "no",
+        "Q4": "Tairrdelbach Ua Briain"
+      },
+      "rewrite_prediction": "Tairrdelbach Ua Briain",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "d09aface0baf11ebab90acde48001122::112",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Sir William Maule"
+      ],
+      "original_question": "Who is Walter Maule's paternal grandfather?",
+      "rewrite_question": "Who is the paternal grandfather of the person with the family name Maule, who was born in 1676 and died on April 13, 1758, and is also known as Henry Maule?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Walter Maule?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is Walter Maule's father?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is #2's father?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the person with the family name Maule, born in 1676 and died on April 13, 1758, also known as Henry Maule?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the paternal grandfather of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "1st Baron Panmure",
+        "Q2": "Richard Maule of Fowlis"
+      },
+      "rewrite_prediction": "Richard Maule of Fowlis",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "285620d60bb011ebab90acde48001122::118",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Princess Victoria of Saxe-Coburg-Saalfeld"
+      ],
+      "original_question": "Who is the maternal grandmother of Alfred, Duke Of Saxe-Coburg And Gotha?",
+      "rewrite_question": "Who is the maternal grandmother of the person whose mother is depicted in a public artwork created by Thomas Brock and located in South Africa, and who also held the title of Duke of Saxe-Coburg and Gotha?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the mother of Alfred, Duke of Saxe-Coburg and Gotha?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the mother of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the person whose mother is depicted in a public artwork created by Thomas Brock and located in South Africa?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the title of Duke of Saxe-Coburg and Gotha associated with?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the maternal grandmother of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Nelson Mandela",
+        "Q2": "German Empire",
+        "Q3": "Nomka Moerane"
+      },
+      "rewrite_prediction": "Nomka Moerane",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "bebbb5ec0bdb11eba7f7acde48001122::120",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "New York"
+      ],
+      "original_question": "What is the place of birth of the director of film Deathstalker Ii?",
+      "rewrite_question": "In which city was the filmmaker whose given name is Jim, who was born on August 14, 1950, holds United States citizenship, and is known for working in film as well as directing Deathstalker II, born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Deathstalker II?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the place of birth of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the filmmaker whose given name is Jim, born on August 14, 1950, holds United States citizenship, and is known for directing Deathstalker II?"
+        },
+        {
+          "label": "Q2",
+          "text": "In which city was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Jim Wynorski",
+        "Q2": "Glen Cove"
+      },
+      "rewrite_prediction": "Glen Cove",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "3afdad9c086f11ebbd62ac1f6bf848b6::122",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Patrick Janvier"
+      ],
+      "original_question": "Who was born later, Patrick Janvier or Nicolas About?",
+      "rewrite_question": "Between the individual whose birth date, November 18, 1984, fell on a Sunday and is part of November 1984, and the person born on July 14, 1947, which was a Monday and is included in July 1947, who was born more recently?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "When was Patrick Janvier born?"
+        },
+        {
+          "label": "Q2",
+          "text": "When was Nicolas About born?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the birth date of #1 later than the birth date of #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the birth date of the first individual?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the birth date of the second individual?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which birth date is more recent, #1 or #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "March 1851",
+        "Q2": "January 16, 1948",
+        "Q3": "January 16, 1948"
+      },
+      "rewrite_prediction": "November 18, 1984",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "14d55cb908cf11ebbd94ac1f6bf848b6::129",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Wangechi"
+      ],
+      "original_question": "Who was born later, Miko Mayama or Wangechi?",
+      "rewrite_question": "Between the actress whose birth date is August 15, 1939, and the musician whose birth date is January 19, 1994—which also falls on a Wednesday and is part of January 1994—who was born more recently?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "When was Miko Mayama born?"
+        },
+        {
+          "label": "Q2",
+          "text": "When was Wangechi born?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the birth date of #2 later than the birth date of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the birth date of the actress?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the birth date of the musician?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which of #1 or #2 is more recent?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "August 6, 1940",
+        "Q2": "August 9, 1939",
+        "Q3": "August 6, 1940"
+      },
+      "rewrite_prediction": "The musician",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "2fa728f20bde11eba7f7acde48001122::130",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Westminster"
+      ],
+      "original_question": "Where was the husband of Florence Bligh, Countess Of Darnley born?",
+      "rewrite_question": "In which city was the English cricketer who held the title of 8th Earl of Darnley, served as the husband of Florence Bligh, Countess Of Darnley, and is also known for captaining England in the Ashes, born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the husband of Florence Bligh, Countess of Darnley?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the English cricketer who held the title of 8th Earl of Darnley?"
+        },
+        {
+          "label": "Q2",
+          "text": "In which city was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Ivo Francis Walter Bligh",
+        "Q2": "London"
+      },
+      "rewrite_prediction": "London",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "6b6f51940bb011ebab90acde48001122::132",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Thomas Bruce, 7th Earl of Kincardine"
+      ],
+      "original_question": "Who is the paternal grandfather of Charles Bruce, 5Th Earl Of Elgin?",
+      "rewrite_question": "Who is the paternal grandfather of the Scottish peer whose father was William Bruce, 8th Earl of Kincardine, and who himself held the title of 5th Earl of Elgin?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Charles Bruce, 5th Earl of Elgin's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the Scottish peer whose father was William Bruce, 8th Earl of Kincardine, and who held the title of 5th Earl of Elgin?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the paternal grandfather of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Charles Bruce, 5th Earl of Elgin",
+        "Q2": "William Bruce, 8th Earl of Kincardine"
+      },
+      "rewrite_prediction": "William Bruce, 8th Earl of Kincardine",
+      "verif_gate": "none",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "03f13a3e0bdb11eba7f7acde48001122::133",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "New York"
+      ],
+      "original_question": "Where was the director of film Munchie born?",
+      "rewrite_question": "In which city was the filmmaker whose given name is Jim, who holds United States citizenship, and who directed the film Munchie, born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Munchie?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the filmmaker with the given name Jim who directed the film Munchie?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the birthplace of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Jim Wynorski",
+        "Q2": "Glen Cove, Long Island, New York"
+      },
+      "rewrite_prediction": "Glen Cove",
+      "verif_gate": "none",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "83a497ce0bb011ebab90acde48001122::134",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Connor O'Brien, 3rd Earl of Thomond"
+      ],
+      "original_question": "Who is the paternal grandfather of Connor O'Brien, 2Nd Viscount Clare?",
+      "rewrite_question": "Who is the paternal grandfather of the Irish nobleman whose father was Daniel O'Brien, 1st Viscount Clare, and who himself held the title of 2nd Viscount Clare?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Connor O'Brien, 2nd Viscount Clare?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of Connor O'Brien, 2nd Viscount Clare?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the father of #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the Irish nobleman whose father was Daniel O'Brien, 1st Viscount Clare, and who held the title of 2nd Viscount Clare?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the paternal grandfather of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Connor O'Brien",
+        "Q2": "Connor O'Brien"
+      },
+      "rewrite_prediction": "Daniel O'Brien, 1st Viscount Clare",
+      "verif_gate": "none",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "676ddc2408e911ebbda7ac1f6bf848b6::140",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Branko Belačić"
+      ],
+      "original_question": "Who is younger, Moritz Brosch or Branko Belačić?",
+      "rewrite_question": "Between the individual whose date of birth falls on a Tuesday in April 1829 and the person whose birth occurred on a Saturday in October 1929, who is the younger?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is Moritz Brosch's date of birth?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is Branko Belačić's date of birth?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 later than #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the date of birth of the individual whose date of birth falls on a Tuesday in April 1829?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the date of birth of the person whose birth occurred on a Saturday in October 1929?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which date is more recent, #1 or #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "April 16, 1829",
+        "Q2": "October 19, 1929",
+        "Q3": "October 19, 1929"
+      },
+      "rewrite_prediction": "The person born on October 19, 1929.",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "8109b3800bda11eba7f7acde48001122::142",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "17 November 1845"
+      ],
+      "original_question": "When is Princess Joséphine Marie Of Belgium's mother's birthday?",
+      "rewrite_question": "On what date was the woman whose works are held in the Mu.ZEE - Kunstmuseum aan Zee, who is described by the Dictionary of Women Worldwide, and who is also the mother of Princess Joséphine Marie of Belgium, born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Princess Joséphine Marie Of Belgium's mother?"
+        },
+        {
+          "label": "Q2",
+          "text": "When is #1's birthday?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the woman whose works are held in the Mu.ZEE - Kunstmuseum aan Zee?"
+        },
+        {
+          "label": "Q2",
+          "text": "According to the Dictionary of Women Worldwide, who is the woman described as the mother of Princess Joséphine Marie of Belgium?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the woman identified in #1 the same as the woman identified in #2?"
+        },
+        {
+          "label": "Q4",
+          "text": "On what date was the woman in #3 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Marie Bilders-van Bosse",
+        "Q2": "Princess Marie of Hohenzollern-Sigmaringen",
+        "Q3": "no",
+        "Q4": "9 July 1970"
+      },
+      "rewrite_prediction": "25 October 1865",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "5d6e0f860bb011ebab90acde48001122::143",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Virginia Woolf"
+      ],
+      "original_question": "Who is the sibling-in-law of Bella Sidney Woolf?",
+      "rewrite_question": "Which person is the sibling-in-law of the editor and journalist who was a member of the Labour Party, associated with the Bloomsbury Group, and is also known as Leonard Woolf?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Bella Sidney Woolf's sibling?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the spouse of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the editor and journalist associated with the Labour Party, the Bloomsbury Group, and known as Leonard Woolf?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the sibling-in-law of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Leonard Sidney Woolf",
+        "Q2": "Bella Sidney Woolf"
+      },
+      "rewrite_prediction": "Bella Sidney Woolf",
+      "verif_gate": "none",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "70a6d78e085311ebbd59ac1f6bf848b6::150",
+      "failure_type": "C_FORMAT_MISMATCH",
+      "gold": [
+        "Martino Finotto"
+      ],
+      "original_question": "Who lived longer, Martino Finotto or Franklin Edson?",
+      "rewrite_question": "Between the individual whose birth occurred on a Saturday in November 1933 and who died in August 2014, and the person born on April 5, 1832 and who passed away in September 1904, which one had a longer lifespan?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "How long did Martino Finotto live?"
+        },
+        {
+          "label": "Q2",
+          "text": "How long did Franklin Edson live?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did #1 live longer than #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "How old was the individual born on a Saturday in November 1933 when they died in August 2014?"
+        },
+        {
+          "label": "Q2",
+          "text": "How old was the person born on April 5, 1832 when they passed away in September 1904?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which age is greater, #1 or #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "80",
+        "Q2": "72",
+        "Q3": "80"
+      },
+      "rewrite_prediction": "The individual born on a Saturday in November 1933 and who died in August 2014 had a longer lifespan.",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "872d42440bdb11eba7f7acde48001122::151",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "7 May 1664"
+      ],
+      "original_question": "When did Thomas Tufton, 6Th Earl Of Thanet's father die?",
+      "rewrite_question": "On what date did the individual who held the title of 2nd Earl of Thanet, was the father of Thomas Tufton, 6th Earl of Thanet, and was known as John Tufton, pass away?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was Thomas Tufton, 6th Earl of Thanet's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "When did #1 die?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was the 2nd Earl of Thanet?"
+        },
+        {
+          "label": "Q2",
+          "text": "When did #1 pass away?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "John Tufton",
+        "Q2": "27 April 1680"
+      },
+      "rewrite_prediction": "27 April 1680",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "936c70440bda11eba7f7acde48001122::153",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Kraków"
+      ],
+      "original_question": "Where was the director of film Noose (1958 Film) born?",
+      "rewrite_question": "In which city was the filmmaker who received the Gold Cross of Merit, was commemorated by Aleja Gwiazd w Łodzi, and was educated at the Jan Matejko Academy of Fine Arts in Krakow, and who also directed the film Noose (1958 Film), born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Noose (1958)?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the filmmaker that received the Gold Cross of Merit?"
+        },
+        {
+          "label": "Q2",
+          "text": "In which city was #1 born?"
+        },
+        {
+          "label": "Q3",
+          "text": "Was #1 commemorated by Aleja Gwiazd w Łodzi?"
+        },
+        {
+          "label": "Q4",
+          "text": "Did #1 direct the film Noose (1958 Film)?"
+        },
+        {
+          "label": "Q5",
+          "text": "Was #1 educated at the Jan Matejko Academy of Fine Arts in Krakow?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Andrzej Witold Wajda",
+        "Q2": "Warsaw",
+        "Q3": "yes",
+        "Q4": "no",
+        "Q5": "no"
+      },
+      "rewrite_prediction": "Paris",
+      "verif_gate": "yes",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "362871560baf11ebab90acde48001122::154",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Louis X of France"
+      ],
+      "original_question": "Who is Philip Iii Of Navarre's father-in-law?",
+      "rewrite_question": "Which monarch, who was the mother of Agnès de Navarre and whose cause of death was the plague, was married to Philip III of Navarre, making her father the father-in-law of Philip III of Navarre?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Philip III of Navarre married to?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Agnès de Navarre's mother?"
+        },
+        {
+          "label": "Q2",
+          "text": "Which monarch was married to Philip III of Navarre?"
+        },
+        {
+          "label": "Q3",
+          "text": "What is the relationship between the father of #1 and Philip III of Navarre?"
+        },
+        {
+          "label": "Q4",
+          "text": "What was the cause of death of #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Joan II of Navarre",
+        "Q2": "Joan II of Navarre",
+        "Q3": "cousin",
+        "Q4": "Black Death"
+      },
+      "rewrite_prediction": "Joan II of Navarre",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "9b0abb320bdd11eba7f7acde48001122::155",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "English"
+      ],
+      "original_question": "What nationality is the director of film Running Scared (1972 Film)?",
+      "rewrite_question": "What is the nationality of the opera singer and film producer who appeared in both Airwolf and Spy Game, and who also directed the film Running Scared (1972 Film)?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Running Scared (1972)?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the nationality of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the opera singer and film producer who appeared in both Airwolf and Spy Game?"
+        },
+        {
+          "label": "Q2",
+          "text": "Did #1 direct the film Running Scared (1972 Film)?"
+        },
+        {
+          "label": "Q3",
+          "text": "What is the nationality of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Alex Cord",
+        "Q2": "no",
+        "Q3": "American"
+      },
+      "rewrite_prediction": "American",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "350ec8b80bde11eba7f7acde48001122::158",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Atlantic City, New Jersey"
+      ],
+      "original_question": "Where was the composer of song By The Beautiful Sea (Song) born?",
+      "rewrite_question": "In which city was the pianist who was born on November 28, 1892, held United States citizenship, and composed the song By The Beautiful Sea born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the composer of the song \"By The Beautiful Sea\"?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the pianist born on November 28, 1892, who composed the song \"By The Beautiful Sea\"?"
+        },
+        {
+          "label": "Q2",
+          "text": "In which city was #1 born?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did #1 hold United States citizenship?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Harry Carroll",
+        "Q2": "Atlantic City",
+        "Q3": "American"
+      },
+      "rewrite_prediction": "Atlantic City",
+      "verif_gate": "none",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "1717b8ce0bde11eba7f7acde48001122::159",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Tucson, Arizona"
+      ],
+      "original_question": "What is the place of birth of the composer of film The Quiet One (Film)?",
+      "rewrite_question": "In which city was the composer who was educated at both the University of Arizona and the Eastman School of Music, and who also composed the film The Quiet One, born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the composer of the film The Quiet One?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the place of birth of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the composer educated at both the University of Arizona and the Eastman School of Music?"
+        },
+        {
+          "label": "Q2",
+          "text": "Did #1 compose the film The Quiet One?"
+        },
+        {
+          "label": "Q3",
+          "text": "In which city was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Ricardo Zohn-Muldoon",
+        "Q2": "no",
+        "Q3": "Guadalajara"
+      },
+      "rewrite_prediction": "New York City",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "48b18ece0bb011ebab90acde48001122::160",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Adolf II of Berg"
+      ],
+      "original_question": "Who is the paternal grandfather of Adolf Iv, Count Of Berg?",
+      "rewrite_question": "Which individual, who is the child of Bruno II von Berg and whose date of birth is either 1045 or January 1, 1080, is the paternal grandfather of Adolf IV, Count of Berg?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Adolf IV, Count of Berg?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of Adolf IV, Count of Berg?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the father of #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the child of Bruno II von Berg?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the date of birth of the individual in #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the date of birth of the individual in #1 either 1045 or January 1, 1080?"
+        },
+        {
+          "label": "Q4",
+          "text": "Who is the paternal grandfather of Adolf IV, Count of Berg?"
+        },
+        {
+          "label": "Q5",
+          "text": "Is the individual in #1 the same as the individual in #4?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Bruno III of Berg",
+        "Q2": "1156",
+        "Q3": "January 1, 1080",
+        "Q4": "Adolf III of Berg",
+        "Q5": "no"
+      },
+      "rewrite_prediction": "Adolf III of Berg",
+      "verif_gate": "no",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "6039cb620bdb11eba7f7acde48001122::163",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "City College of New York"
+      ],
+      "original_question": "Where did Diane Meyer Simon's husband graduate from?",
+      "rewrite_question": "Which educational institution did the printer whose date of birth is January 1, 1898, whose date of death is January 1, 1974, and who is described by the Encyclopaedia Judaica, and who was married to Diane Meyer Simon, graduate from?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Diane Meyer Simon's husband?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 graduate from?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the printer born on January 1, 1898, and died on January 1, 1974?"
+        },
+        {
+          "label": "Q2",
+          "text": "What educational institution did #1 graduate from?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "William Seward Burroughs II",
+        "Q2": "Harvard University"
+      },
+      "rewrite_prediction": "Harvard University",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "f6e4582a0bae11ebab90acde48001122::164",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Axel Mowat"
+      ],
+      "original_question": "Who is Axel Rosenkrantz's maternal grandfather?",
+      "rewrite_question": "Who is the maternal grandfather of the Norwegian citizen born in 1630, who is also the mother of Axel Rosenkrantz?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Axel Rosenkrantz's mother?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the Norwegian citizen born in 1630 and the mother of Axel Rosenkrantz?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the maternal grandfather of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Karen Mowat",
+        "Q2": "Knudsdatter"
+      },
+      "rewrite_prediction": "Knudsdatter",
+      "verif_gate": "none",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "373b656c0bdc11eba7f7acde48001122::166",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Baugé"
+      ],
+      "original_question": "What is the place of birth of Joan Of Savoy's father?",
+      "rewrite_question": "In which location was the nobleman who held the title of Count of Savoy, was married to Blanche of Burgundy, and is also the father of Joan of Savoy born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Joan of Savoy's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the place of birth of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was the nobleman who held the title of Count of Savoy, was married to Blanche of Burgundy, and is the father of Joan of Savoy?"
+        },
+        {
+          "label": "Q2",
+          "text": "In which location was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Edward",
+        "Q2": "Salford, Lancashire"
+      },
+      "rewrite_prediction": "Salford, Lancashire",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "91e7e3780baf11ebab90acde48001122::174",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Kim Jong-il"
+      ],
+      "original_question": "Who is the father-in-law of Ri Sol-Ju?",
+      "rewrite_question": "Which marshal who was awarded the Jubilee Medal \"75 Years of Victory in the Great Patriotic War 1941–1945\" and was also featured in Time 100 is married to Ri Sol-Ju, and who is the father of that person's spouse?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Ri Sol-Ju?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the spouse of Ri Sol-Ju?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the father of #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Which marshal was awarded the Jubilee Medal \"75 Years of Victory in the Great Patriotic War 1941–1945\" and was also featured in Time 100?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is married to Ri Sol-Ju?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the father of the person identified in #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "George C. Marshall",
+        "Q2": "Kim Jong-un",
+        "Q3": "Kim Jong-il"
+      },
+      "rewrite_prediction": "Kim Jong-un",
+      "verif_gate": "none",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "2ed33a200bb011ebab90acde48001122::175",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Hedwig von Oldenburg in Wildeshausen"
+      ],
+      "original_question": "Who is Conrad I, Count Of Oldenburg's paternal grandmother?",
+      "rewrite_question": "Who is the paternal grandmother of the individual whose siblings include Agnes of Oldenburg, Christian IV, Count of Oldenburg, and Gisela of Oldenburg, and who is also the child of John II of Oldenburg?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was Conrad I, Count of Oldenburg's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who was the mother of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the individual whose siblings include Agnes of Oldenburg, Christian IV, Count of Oldenburg, and Gisela of Oldenburg?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the paternal grandmother of #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Christian V, Count of Oldenburg",
+        "Q2": "Count Conrad I of Oldenburg",
+        "Q3": "Hedwig of Diepholz"
+      },
+      "rewrite_prediction": "Hedwig of Diepholz",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "82043b7c0bdd11eba7f7acde48001122::178",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Spanish"
+      ],
+      "original_question": "Which country Luís Of Portugal, Duke Of Beja's mother is from?",
+      "rewrite_question": "Which country is the mother of Luís of Portugal, Duke of Beja, from, if she was known by the birth names Maria d'Aragó i de Castella and María de Aragón y Castilla, and died due to puerperal disorders?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Luís Of Portugal, Duke Of Beja's mother?"
+        },
+        {
+          "label": "Q2",
+          "text": "Which country is #1 from?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the mother of Luís of Portugal, Duke of Beja?"
+        },
+        {
+          "label": "Q2",
+          "text": "What are the birth names of the mother identified in #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which countries are associated with the names Maria d'Aragó i de Castella and María de Aragón y Castilla?"
+        },
+        {
+          "label": "Q4",
+          "text": "From which country is the mother of Luís of Portugal, Duke of Beja, from based on the information in #3?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Maria of Aragon",
+        "Q2": "Eleanor of Alburquerque",
+        "Q3": "Spain",
+        "Q4": "Aragon"
+      },
+      "rewrite_prediction": "Aragon",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "fc06b4f00baf11ebab90acde48001122::180",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Berengaria of León"
+      ],
+      "original_question": "Who is the paternal grandmother of John I Of Brienne, Count Of Eu?",
+      "rewrite_question": "Which woman is the paternal grandmother of the person who is a child of Alphonso of Brienne, and whose siblings include Blanche d'Eu, Isabeau de Brienne, and Margaret d'Eu?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is John I of Brienne, Count of Eu's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the mother of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "What is the name of #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the child of Alphonso of Brienne?"
+        },
+        {
+          "label": "Q2",
+          "text": "What are the names of the siblings of the person in #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which woman is the paternal grandmother of the person in #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "John I of Brienne",
+        "Q2": "Hugh",
+        "Q3": "Marie de Lusigan"
+      },
+      "rewrite_prediction": "Marie de Lusigan",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "790a75c40bdb11eba7f7acde48001122::181",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Dutch"
+      ],
+      "original_question": "What is the place of birth of the director of film The Possession Of Hannah Grace?",
+      "rewrite_question": "What is the birthplace of the filmmaker who is a graduate of the Netherlands Film Academy, holds citizenship in the Kingdom of the Netherlands, is the child of Mies van Rooijen, and also directed the film The Possession Of Hannah Grace?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film The Possession Of Hannah Grace?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the place of birth of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the filmmaker that graduated from the Netherlands Film Academy, holds citizenship in the Kingdom of the Netherlands, is the child of Mies van Rooijen, and directed the film The Possession Of Hannah Grace?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the birthplace of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Diederik van Rooijen",
+        "Q2": "Amsterdam"
+      },
+      "rewrite_prediction": "Amsterdam",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "da1268560bd911eba7f7acde48001122::183",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Königstein im Taunus"
+      ],
+      "original_question": "Where was the place of death of the director of film Family Parade?",
+      "rewrite_question": "In which city did the German national who was born as Karl Richard Friedrich Hermann Schulze, received the Commander's Cross of the Order of Merit of the Federal Republic of Germany, and directed the film Family Parade, die?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Family Parade?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 die?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "In which city did Karl Richard Friedrich Hermann Schulze die?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the significance of the Commander's Cross of the Order of Merit of the Federal Republic of Germany in relation to Karl Richard Friedrich Hermann Schulze?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which film did Karl Richard Friedrich Hermann Schulze direct titled \"Family Parade\"?"
+        },
+        {
+          "label": "Q4",
+          "text": "Is there any connection between the city where #1 occurred and the film #3?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Leipzig",
+        "Q2": "awarded him",
+        "Q3": "1936 German comedy film",
+        "Q4": "Berlin"
+      },
+      "rewrite_prediction": "Leipzig",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "f66c25620bae11ebab90acde48001122::185",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Georgiana Maria Elliot"
+      ],
+      "original_question": "Who is David Carnegie, 10Th Earl Of Northesk's paternal grandmother?",
+      "rewrite_question": "Who is the woman who married George Carnegie, 9th Earl of Northesk, and is also the paternal grandmother of David Carnegie, 10th Earl of Northesk?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is David Carnegie, 10th Earl of Northesk's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the mother of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is George Carnegie, 9th Earl of Northesk?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is David Carnegie, 10th Earl of Northesk?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the paternal grandmother of David Carnegie, 10th Earl of Northesk?"
+        },
+        {
+          "label": "Q4",
+          "text": "Who is the woman who married George Carnegie, 9th Earl of Northesk?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "a British nobleman and soldier",
+        "Q2": "a Scottish representative peer",
+        "Q3": "Elizabeth Lindsay",
+        "Q4": "Elizabeth Georgina Frances Elliot"
+      },
+      "rewrite_prediction": "Elizabeth Georgina Frances Elliot",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "ea3fb82908e611ebbda5ac1f6bf848b6::190",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Meghan O'Leary"
+      ],
+      "original_question": "Who was born later, Meghan O'Leary or Engin Fırat?",
+      "rewrite_question": "Between the individual whose birth date falls on August 24, 1984, and the person whose birthday is June 11, 1970—which is a Thursday and also part of June 1970—who was born more recently?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "When was Meghan O'Leary born?"
+        },
+        {
+          "label": "Q2",
+          "text": "When was Engin Fırat born?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the birth date in #1 later than the birth date in #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the birth date of the individual whose birth date falls on August 24, 1984?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the birth date of the person whose birthday is June 11, 1970?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which of #1 or #2 represents a more recent birth date?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "August 24, 1984",
+        "Q2": "June 11, 1970",
+        "Q3": "August 24, 1984"
+      },
+      "rewrite_prediction": "August 24, 1984",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "38345f800bde11eba7f7acde48001122::191",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Sarasota, Florida"
+      ],
+      "original_question": "Where was the place of death of the founder of Bloomberg Industry Group?",
+      "rewrite_question": "In which city did the journalist who was a United States citizen, received the Presidential Medal of Freedom, was born on December 25, 1888, and died on February 11, 1973, and who also founded Bloomberg Industry Group, pass away?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the founder of Bloomberg Industry Group?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 die?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the journalist that was a United States citizen, received the Presidential Medal of Freedom, was born on December 25, 1888, and died on February 11, 1973?"
+        },
+        {
+          "label": "Q2",
+          "text": "In which city did #1 pass away?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did #1 found Bloomberg Industry Group?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Harry S. Truman",
+        "Q2": "Independence, Missouri",
+        "Q3": "no"
+      },
+      "rewrite_prediction": "Independence, Missouri",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "b0b01e73089111ebbd73ac1f6bf848b6::193",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "George Cressman"
+      ],
+      "original_question": "Who died later, George Cressman or Herbert Douglas Anthony?",
+      "rewrite_question": "Between the individual whose date of death falls on April 17, 2008, and the person who died on June 10, 1968—a Monday that is part of June 1968 and corresponds to the point in time 1968-06-10—which one passed away more recently?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "When did George Cressman die?"
+        },
+        {
+          "label": "Q2",
+          "text": "When did Herbert Douglas Anthony die?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did #2 occur after #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the date of death for the individual who died on April 17, 2008?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the date of death for the person who died on June 10, 1968?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which date is more recent, #1 or #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "April 17, 2008",
+        "Q2": "June 10, 1968",
+        "Q3": "April 17, 2008"
+      },
+      "rewrite_prediction": "April 17, 2008",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "53d64ad80bb011ebab90acde48001122::195",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "George II"
+      ],
+      "original_question": "Who is the paternal grandfather of Princess Elisabeth Of Waldeck And Pyrmont?",
+      "rewrite_question": "Who is the father of the ruler who held the title Prince of Waldeck and Pyrmont, was the parent of Princess Elisabeth of Waldeck and Pyrmont, and also served as the head of the House of Waldeck and Pyrmont during the 19th century?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Princess Elisabeth of Waldeck and Pyrmont's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was the ruler that held the title Prince of Waldeck and Pyrmont?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who was the father of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did #2 serve as the head of the House of Waldeck and Pyrmont during the 19th century?"
+        },
+        {
+          "label": "Q4",
+          "text": "Was #2 the parent of Princess Elisabeth of Waldeck and Pyrmont?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Friedrich Karl August",
+        "Q2": "Charles William Ferdinand",
+        "Q3": "no",
+        "Q4": "no"
+      },
+      "rewrite_prediction": "Charles II, Duke of Brunswick-Lüneburg",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "390f11bc0bb011ebab90acde48001122::198",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "William III, Count of Nevers"
+      ],
+      "original_question": "Who is Agnes I, Countess Of Nevers's paternal grandfather?",
+      "rewrite_question": "Who is the paternal grandfather of the noblewoman who held the title Countess of Nevers and whose father was Guy, Count of Nevers, with Guy himself being the son of a previous Count of Nevers?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Agnes I, Countess of Nevers's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is #1's father?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was the noblewoman who held the title Countess of Nevers?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who was the father of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who was the father of #2?"
+        },
+        {
+          "label": "Q4",
+          "text": "What is the relationship between #3 and #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "John II",
+        "Q2": "Ferdinand I",
+        "Q3": "Charles V",
+        "Q4": "son"
+      },
+      "rewrite_prediction": "Charles V",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "21ba8e73085811ebbd5aac1f6bf848b6::200",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Ruben Trumpelmann"
+      ],
+      "original_question": "Who is younger, Charles R. Nesbitt or Ruben Trumpelmann?",
+      "rewrite_question": "Between the individual whose birth date is August 30, 1921, and the person whose birth date is February 1, 1998—which also falls on a Sunday and is part of February 1998—who is younger?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the birthdate of Charles R. Nesbitt?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the birthdate of Ruben Trumpelmann?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 later than #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the age of the individual born on August 30, 1921?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the age of the person born on February 1, 1998?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #2 younger than #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "96",
+        "Q2": "20",
+        "Q3": "yes"
+      },
+      "rewrite_prediction": "The person born on February 1, 1998.",
+      "verif_gate": "yes",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "14bdff820bdb11eba7f7acde48001122::203",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "October 20, 1952"
+      ],
+      "original_question": "When was the director of film Slap Her... She'S French born?",
+      "rewrite_question": "On what date was the actor who has appeared in Pretty Little Liars and Criminal Minds: Evolution, and who also has the occupation of director, specifically of the film Slap Her... She'S French, born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Slap Her... She's French?"
+        },
+        {
+          "label": "Q2",
+          "text": "When was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the actor that has appeared in Pretty Little Liars and Criminal Minds: Evolution?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the name of the director of the film Slap Her... She's French?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the person identified in #1 the same as the person identified in #2?"
+        },
+        {
+          "label": "Q4",
+          "text": "On what date was the person identified in #3 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Matthew Gray Gubler",
+        "Q2": "Melanie Mayron",
+        "Q3": "no",
+        "Q4": "January 19, 2018"
+      },
+      "rewrite_prediction": "February 17, 1979",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "6f64a5f20baf11ebab90acde48001122::207",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Louis X of France"
+      ],
+      "original_question": "Who is Blanche Of Navarre, Queen Of France's maternal grandfather?",
+      "rewrite_question": "Who is the maternal grandfather of the queen whose mother was Joan II of Navarre, who died of plague, and who was also the sibling of Agnès de Navarre and Charles II of Navarre?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was Blanche Of Navarre, Queen Of France's mother?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who was the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the queen whose mother was Joan II of Navarre?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the maternal grandfather of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did Joan II of Navarre die of plague?"
+        },
+        {
+          "label": "Q4",
+          "text": "Who were the siblings of Joan II of Navarre?"
+        },
+        {
+          "label": "Q5",
+          "text": "Is Agnès de Navarre a sibling of Joan II of Navarre?"
+        },
+        {
+          "label": "Q6",
+          "text": "Is Charles II of Navarre a sibling of Joan II of Navarre?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Blanche II",
+        "Q2": "John II of Aragon",
+        "Q3": "died in the Black Death",
+        "Q4": "Louis X",
+        "Q5": "daughter",
+        "Q6": "no"
+      },
+      "rewrite_prediction": "John II of Aragon",
+      "verif_gate": "no",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "ad95061a0bdb11eba7f7acde48001122::210",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "26 September 188"
+      ],
+      "original_question": "When did Emperor Houshao Of Han's father die?",
+      "rewrite_question": "On what date did the ruler whose ancestral home was Chang'an County, who was also the parent of both Liu Buyi and Liu Chao, and who was the father of Emperor Houshao of Han, pass away?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was Emperor Houshao Of Han's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "When did #1 die?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the ruler whose ancestral home was Chang'an County?"
+        },
+        {
+          "label": "Q2",
+          "text": "What are the names of the children of the ruler in #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the father of Emperor Houshao of Han?"
+        },
+        {
+          "label": "Q4",
+          "text": "On what date did the ruler in #1 pass away?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Zhu Meichuo",
+        "Q2": "Princess Changping",
+        "Q3": "Emperor Hui",
+        "Q4": "26 September 1646"
+      },
+      "rewrite_prediction": "26 September 1646",
+      "verif_gate": "none",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "35568cbc0bb011ebab90acde48001122::211",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "George"
+      ],
+      "original_question": "Who is the maternal grandfather of Sophie Of Württemberg, Duchess Of Saxe-Weimar?",
+      "rewrite_question": "Who is the maternal grandfather of the Duchess whose mother was Anna Maria of Brandenburg-Ansbach, who was also the parent of Anna of Württemberg, Dorothea Maria of Württemberg, and Duchess Sabine of Württemberg?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Sophie Of Württemberg, Duchess Of Saxe-Weimar's mother?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the Duchess whose mother was Anna Maria of Brandenburg-Ansbach?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the maternal grandfather of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Anna of Württemberg",
+        "Q2": "James II of Aragon"
+      },
+      "rewrite_prediction": "James II of Aragon",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "c511cef80baf11ebab90acde48001122::217",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Theophano"
+      ],
+      "original_question": "Who is the paternal grandmother of Zoë Porphyrogenita?",
+      "rewrite_question": "Who is the paternal grandmother of the Byzantine empress who was a child of Constantine VIII, held citizenship in the Byzantine Empire, and was also the sibling of Eudokia and Theodora Porphyrogenita?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Zoë Porphyrogenita's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the mother of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the Byzantine empress that was a child of Constantine VIII?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the name of the paternal grandmother of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who are the siblings of #1?"
+        },
+        {
+          "label": "Q4",
+          "text": "Are Eudokia and Theodora Porphyrogenita among the siblings of #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Theodora Porphyrogenita",
+        "Q2": "Zoe Karbonopsina",
+        "Q3": "Zoë",
+        "Q4": "no"
+      },
+      "rewrite_prediction": "Zoe Karbonopsina",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "4abc56580bde11eba7f7acde48001122::222",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Hans Riegel"
+      ],
+      "original_question": "Who is the founder of the company that manufactured Fraise Tagada?",
+      "rewrite_question": "Who is the founder of the company that was formed in Bonn, operates as a GmbH & Co. KG, and employs around 7,000 people, which is also the manufacturer of Fraise Tagada?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Which company manufactured Fraise Tagada?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the founder of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the name of the company that was formed in Bonn, operates as a GmbH & Co. KG, and employs around 7,000 people?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the founder of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 the manufacturer of Fraise Tagada?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "IVG Immobilien",
+        "Q2": "IndustrieVerwaltungs Gesellschaft mbH",
+        "Q3": "no"
+      },
+      "rewrite_prediction": "IndustrieVerwaltungs Gesellschaft mbH",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "8da9737a0bb011ebab90acde48001122::224",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Prince Yi Kang"
+      ],
+      "original_question": "Who is the paternal grandfather of Yi Hong?",
+      "rewrite_question": "Who is the father of the person born on August 3, 1941, who holds citizenship in both the Empire of Japan and South Korea and is also the parent of Yi Hong?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Yi Hong's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was born on August 3, 1941, and holds citizenship in both the Empire of Japan and South Korea?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 the parent of Yi Hong?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Kim Ho-sun",
+        "Q2": "Kim Hyŏng- jik",
+        "Q3": "no"
+      },
+      "rewrite_prediction": "Kim Il-sung",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "2e50a8760bdd11eba7f7acde48001122::225",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "St. Louis, Missouri"
+      ],
+      "original_question": "Where was the composer of song Come On (Chuck Berry Song) born?",
+      "rewrite_question": "In which city was the influential rock and roll musician, who was inducted into the Rock and Roll Hall of Fame and composed the song 'Come On', born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the composer of the song \"Come On\" by Chuck Berry?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the influential rock and roll musician that composed the song 'Come On'?"
+        },
+        {
+          "label": "Q2",
+          "text": "In which city was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Earl Silas Johnson IV",
+        "Q2": "New Orleans"
+      },
+      "rewrite_prediction": "New Orleans",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "34caa5ca0bde11eba7f7acde48001122::229",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Kristiania"
+      ],
+      "original_question": "Where was the place of death of Randi Monsen's father?",
+      "rewrite_question": "In which city did the editing staff member and politician, who was affiliated with both the Communist Party of Norway and the Norwegian Labour Party and is also the father of Randi Monsen, die?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Randi Monsen's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 die?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the editing staff member and politician affiliated with both the Communist Party of Norway and the Norwegian Labour Party, and is also the father of Randi Monsen?"
+        },
+        {
+          "label": "Q2",
+          "text": "In which city did #1 die?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Christian Fredrik Monsen",
+        "Q2": "Oslo"
+      },
+      "rewrite_prediction": "Oslo",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "1904cc6408c611ebbd90ac1f6bf848b6::234",
+      "failure_type": "C_FORMAT_MISMATCH",
+      "gold": [
+        "Crockett Johnson"
+      ],
+      "original_question": "Who lived longer, Crockett Johnson or Sven-Olof Lundgren?",
+      "rewrite_question": "Who had a longer lifespan: the individual whose date of birth was October 20, 1906 and who died on July 11, 1975, or the person whose birth occurred on November 3, 1908 (which was a Tuesday and part of November 1908) and whose death was on March 26, 1946 (also a Tuesday and part of March 1946)?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "When did Crockett Johnson die?"
+        },
+        {
+          "label": "Q2",
+          "text": "When did Sven-Olof Lundgren die?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the date in #1 later than the date in #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "How many years did the first individual live?"
+        },
+        {
+          "label": "Q2",
+          "text": "How many years did the second individual live?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the lifespan in #1 longer than the lifespan in #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "112",
+        "Q2": "86",
+        "Q3": "yes"
+      },
+      "rewrite_prediction": "The individual whose date of birth was October 20, 1906, and who died on July 11, 1975.",
+      "verif_gate": "yes",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "f6e78f680bae11ebab90acde48001122::240",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "George Willis Pack"
+      ],
+      "original_question": "Who is the paternal grandfather of Randolph Greene Pack?",
+      "rewrite_question": "Who is the paternal grandfather of the individual whose father was recognized with the Lindenberg Medal, the Tapling Medal, and was also a Fellow of the Royal Philatelic Society London, in addition to being inducted into the American Philatelic Society Hall of Fame?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Randolph Greene Pack's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was recognized with the Lindenberg Medal, the Tapling Medal, and was also a Fellow of the Royal Philatelic Society London, in addition to being inducted into the American Philatelic Society Hall of Fame?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of the individual identified in #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the paternal grandfather of the individual identified in #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Lester George Brookman",
+        "Q2": "Norman Brookman",
+        "Q3": "Sir George Brookman"
+      },
+      "rewrite_prediction": "Sir George Brookman",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "12812c92084f11ebbd56ac1f6bf848b6::247",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "T. J. Richards"
+      ],
+      "original_question": "Who died later, Joachim Gasquet or T. J. Richards?",
+      "rewrite_question": "Between the individual whose death occurred in the year that is also the title of a song from the rock music genre, with lyrics by Pete Townshend and featured as part of Tommy, and the person who passed away on a Friday that fell on July 28, 1939, which of these two died more recently?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "When did Joachim Gasquet die?"
+        },
+        {
+          "label": "Q2",
+          "text": "When did T. J. Richards die?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did #2 occur after #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the title of the song from the rock music genre with lyrics by Pete Townshend that is also the year of an individual's death?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the individual whose death occurred in the year identified in #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "When did the person who passed away on July 28, 1939, die?"
+        },
+        {
+          "label": "Q4",
+          "text": "Which of the individuals in #2 and #3 died more recently?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Won't Get Fooled Again",
+        "Q2": "William Ellsworth Robinson",
+        "Q3": "May 29, 1940",
+        "Q4": "May 29, 1940"
+      },
+      "rewrite_prediction": "William Ellsworth Robinson",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "bfb2f8660bdb11eba7f7acde48001122::248",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Rome"
+      ],
+      "original_question": "Where did the director of film Il... Belpaese die?",
+      "rewrite_question": "In which city did the actor who appeared in The Shortest Day, suffered a stroke, and also directed Il... Belpaese die of natural causes?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Il Belpaese?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 die?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the actor that appeared in The Shortest Day?"
+        },
+        {
+          "label": "Q2",
+          "text": "Did the actor in #1 suffer a stroke?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did the actor in #1 direct Il Belpaese?"
+        },
+        {
+          "label": "Q4",
+          "text": "In which city did the actor in #1 die of natural causes?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Dabney Coleman",
+        "Q2": "no",
+        "Q3": "no",
+        "Q4": "Los Angeles"
+      },
+      "rewrite_prediction": "Los Angeles",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "31299a5c0bde11eba7f7acde48001122::253",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Kozhikode"
+      ],
+      "original_question": "Where was the father of Dinanath Puthenchery born?",
+      "rewrite_question": "In which city was the lyricist who received the Kerala State Film Award for Best Lyrics, as well as the Asianet Film Awards and Filmfare Awards South, and who is also the father of Dinanath Puthenchery, born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the father of Dinanath Puthenchery?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the lyricist who received the Kerala State Film Award for Best Lyrics, as well as the Asianet Film Awards and Filmfare Awards South?"
+        },
+        {
+          "label": "Q2",
+          "text": "Is the lyricist in #1 the father of Dinanath Puthenchery?"
+        },
+        {
+          "label": "Q3",
+          "text": "In which city was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Ousepachhan",
+        "Q2": "no",
+        "Q3": "Kottayam"
+      },
+      "rewrite_prediction": "Kottayam",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "9d7e5cba0bd911eba7f7acde48001122::256",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Yamoussoukro"
+      ],
+      "original_question": "Where did Marie-Thérèse Houphouët-Boigny's husband die?",
+      "rewrite_question": "In which city did the member of the Académie des sciences d'outre-mer, who was educated at École normale supérieure William Ponty and is described by the SourceWatch List of Dictators, and who was the husband of Marie-Thérèse Houphouët-Boigny, die?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was Marie-Thérèse Houphouët-Boigny's husband?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 die?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the member of the Académie des sciences d'outre-mer educated at École normale supérieure William Ponty?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the husband of Marie-Thérèse Houphouët-Boigny?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the person in #1 the same as the person in #2?"
+        },
+        {
+          "label": "Q4",
+          "text": "In which city did #3 die?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Jean-Luc Ponty",
+        "Q2": "Félix Houphouët-Boigny",
+        "Q3": "no",
+        "Q4": "Doha"
+      },
+      "rewrite_prediction": "Doha",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "983d79c208d011ebbd95ac1f6bf848b6::260",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Ismael Íñiguez"
+      ],
+      "original_question": "Who is younger, Ismael Íñiguez or Fred Kornet?",
+      "rewrite_question": "Between the individual whose birthdate falls on July 23, 1981—a Thursday and part of July 1981—and the person born on October 2, 1919, who is younger?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is Ismael Íñiguez's date of birth?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is Fred Kornet's date of birth?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 later than #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the age of the individual born on July 23, 1981?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the age of the individual born on October 2, 1919?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 younger than #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "39",
+        "Q2": "99",
+        "Q3": "yes"
+      },
+      "rewrite_prediction": "The individual born on July 23, 1981.",
+      "verif_gate": "yes",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "7a8cb2f20bdd11eba7f7acde48001122::263",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Città di Castello"
+      ],
+      "original_question": "What is the place of birth of the director of film Los Secretos Del Buzón?",
+      "rewrite_question": "In which place was the film director, who was born on October 31, 1910, held citizenship in both Italy and the Kingdom of Italy, and also directed Los Secretos Del Buzón, born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Los Secretos Del Buzón?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the place of birth of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the film director born on October 31, 1910?"
+        },
+        {
+          "label": "Q2",
+          "text": "In which place was #1 born?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did #1 hold citizenship in both Italy and the Kingdom of Italy?"
+        },
+        {
+          "label": "Q4",
+          "text": "Did #1 direct the film Los Secretos Del Buzón?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Karel Zeman",
+        "Q2": "Czech",
+        "Q3": "no",
+        "Q4": "No"
+      },
+      "rewrite_prediction": "Italy",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "edfc5c27087011ebbd63ac1f6bf848b6::264",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Jack Mildren"
+      ],
+      "original_question": "Who is younger, Jack Mildren or Alf Hellevik?",
+      "rewrite_question": "Between the individual whose birth date, June 28, 1909, is also known as 07 Tir 1288 and fell on a Monday, and the person born on October 10, 1949, who is younger?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is Jack Mildren's date of birth?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is Alf Hellevik's date of birth?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 later than #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the age of the individual born on June 28, 1909?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the age of the individual born on October 10, 1949?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #2 younger than #1?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "109",
+        "Q2": "73",
+        "Q3": "yes"
+      },
+      "rewrite_prediction": "The person born on October 10, 1949.",
+      "verif_gate": "yes",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "8cd0aab708e711ebbda6ac1f6bf848b6::266",
+      "failure_type": "E_DATE_COMPARISON_FAILURE",
+      "gold": [
+        "Kathryn Thomas"
+      ],
+      "original_question": "Who is younger, Kathryn Thomas or Ole Bjørnmose?",
+      "rewrite_question": "Between the person whose birthdate, January 20, 1979, fell on a Saturday and is part of January 1979, and the individual born on May 7, 1944, who is younger?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is Kathryn Thomas's date of birth?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is Ole Bjørnmose's date of birth?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 later than #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the age of the person born on January 20, 1979?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the age of the person born on May 7, 1944?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 younger than #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "39",
+        "Q2": "79",
+        "Q3": "yes"
+      },
+      "rewrite_prediction": "The person born on January 20, 1979.",
+      "verif_gate": "yes",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "39af8adc0bda11eba7f7acde48001122::267",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Newport, Wales"
+      ],
+      "original_question": "Where was the director of film Rembrandt'S J'Accuse born?",
+      "rewrite_question": "In which city was the screenwriter who is also the exhibited creator of The Arts for Television, commemorated on the Stars Promenade in Gdańsk, a cast member of Na plovarne, and who directed the film Rembrandt'S J'Accuse born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film Rembrandt's J'Accuse?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the screenwriter and exhibited creator of The Arts for Television, commemorated on the Stars Promenade in Gdańsk, and a cast member of Na plovarne?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who directed the film Rembrandt's J'Accuse?"
+        },
+        {
+          "label": "Q3",
+          "text": "In which city was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Elisabeth Duda",
+        "Q2": "Peter Greenaway",
+        "Q3": "Poland"
+      },
+      "rewrite_prediction": "Poland",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "80f2ebbc0bdc11eba7f7acde48001122::270",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "New York"
+      ],
+      "original_question": "Where was the director of film The Road Through The Dark born?",
+      "rewrite_question": "In which city was the American citizen and actor, who appeared in both Follow the Boys and Mr. Deeds Goes to Town and also directed The Road Through The Dark, born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film The Road Through The Dark?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the American citizen and actor that appeared in both Follow the Boys and Mr. Deeds Goes to Town?"
+        },
+        {
+          "label": "Q2",
+          "text": "Did #1 also direct The Road Through The Dark?"
+        },
+        {
+          "label": "Q3",
+          "text": "In which city was #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Connie Francis",
+        "Q2": "no",
+        "Q3": "New York City"
+      },
+      "rewrite_prediction": "Chicago",
+      "verif_gate": "no",
+      "gold_in_rew_inter": true
+    },
+    {
+      "id": "f88dcc88088611ebbd6dac1f6bf848b6::271",
+      "failure_type": "C_FORMAT_MISMATCH",
+      "gold": [
+        "Douglas Wilmer"
+      ],
+      "original_question": "Who lived longer, Eleni Lambiri or Douglas Wilmer?",
+      "rewrite_question": "Between the individual whose date of birth was a Saturday in February 1889 and who died in March 1960, and the person born on a Thursday in January 1920—whose birthday is also said to be the same as 17 Dey 1298—and who passed away in March 2016, which one lived longer?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the lifespan of Eleni Lambiri?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the lifespan of Douglas Wilmer?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 greater than #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the lifespan of the individual born on a Saturday in February 1889 and who died in March 1960?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the lifespan of the person born on a Thursday in January 1920 and who passed away in March 2016?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which lifespan is longer, #1 or #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "71 years",
+        "Q2": "96 years",
+        "Q3": "96 years"
+      },
+      "rewrite_prediction": "The person born on a Thursday in January 1920 lived longer.",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "9103880b085211ebbd58ac1f6bf848b6::273",
+      "failure_type": "C_FORMAT_MISMATCH",
+      "gold": [
+        "Erling Jensen"
+      ],
+      "original_question": "Who lived longer, Aniela Pawlikowska or Erling Jensen?",
+      "rewrite_question": "Between the individual whose birth occurred on a Thursday in July 1901 and who passed away in December 1980, and the person born on a Friday in July 1891 and who died in September 1973, which one had a longer lifespan?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "What is the lifespan of Aniela Pawlikowska?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the lifespan of Erling Jensen?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is #1 greater than #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "How old was the individual born on a Thursday in July 1901 when they passed away in December 1980?"
+        },
+        {
+          "label": "Q2",
+          "text": "How old was the person born on a Friday in July 1891 when they died in September 1973?"
+        },
+        {
+          "label": "Q3",
+          "text": "Which age is greater, #1 or #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "89",
+        "Q2": "82",
+        "Q3": "89"
+      },
+      "rewrite_prediction": "The individual born on a Thursday in July 1901 and who passed away in December 1980 had a longer lifespan.",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "881866100baf11ebab90acde48001122::275",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Sextus Varius Marcellus"
+      ],
+      "original_question": "Who is Julia Cornelia Paula's father-in-law?",
+      "rewrite_question": "Who is the father-in-law of the Roman emperor who held the position of ancient Roman senator, was a politician, and whose nomen gentilicium was Aurelius, and who was also married to Julia Cornelia Paula?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Julia Cornelia Paula married to?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was the Roman emperor whose nomen gentilicium was Aurelius?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who was the father-in-law of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Was #1 married to Julia Cornelia Paula?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Marcus Aurelius",
+        "Q2": "Antoninus Pius",
+        "Q3": "no"
+      },
+      "rewrite_prediction": "Antoninus Pius",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "67d6c68e0bb011ebab90acde48001122::278",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Zhu Youyuan"
+      ],
+      "original_question": "Who is Consort Duan's father-in-law?",
+      "rewrite_question": "Who is the father-in-law of the ruler who is associated with the People's Republic of China, is located in the administrative territorial entity of Ningwei Subdistrict, and is also in the UTC+08:00 time zone, and who is also the spouse of Consort Duan?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Consort Duan?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is Consort Duan's husband?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the father of #2?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the ruler associated with the People's Republic of China, located in the administrative territorial entity of Ningwei Subdistrict, and in the UTC+08:00 time zone?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father-in-law of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the spouse of Consort Duan?"
+        },
+        {
+          "label": "Q4",
+          "text": "Is #2 the same person as #3?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Xi Jinping",
+        "Q2": "Deng Xiaoping",
+        "Q3": "Jiajing Emperor",
+        "Q4": "no"
+      },
+      "rewrite_prediction": "Deng Xiaoping",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "3d2951d60bb011ebab90acde48001122::282",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_silent",
+      "gold": [
+        "Stephen the Posthumous"
+      ],
+      "original_question": "Who is Agnes Of Austria (1281–1364)'s father-in-law?",
+      "rewrite_question": "Who is the father-in-law of the monarch who was born in 1265, held citizenship in Hungary, is described by the Brockhaus and Efron Encyclopedic Dictionary, and is also the spouse of Agnes of Austria (1281–1364)?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was Agnes Of Austria (1281–1364) married to?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the father of #1?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who was the monarch born in 1265?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the name of the spouse of Agnes of Austria (1281–1364)?"
+        },
+        {
+          "label": "Q3",
+          "text": "Who is the father-in-law of #2?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Adolf",
+        "Q2": "Andrew III of Hungary",
+        "Q3": "Ivan Kőszegi"
+      },
+      "rewrite_prediction": "Ivan Kőszegi",
+      "verif_gate": "none",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "3d049bbe0bda11eba7f7acde48001122::284",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Winnipeg, Manitoba"
+      ],
+      "original_question": "Where was the director of film The Heart Of The World born?",
+      "rewrite_question": "In which city was the filmmaker who has works in the collection of the Museum of Modern Art, was educated at the University of Winnipeg, and directed The Heart Of The World born?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the director of the film The Heart Of The World?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where was #1 born?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the filmmaker that has works in the collection of the Museum of Modern Art?"
+        },
+        {
+          "label": "Q2",
+          "text": "Was the filmmaker in #1 educated at the University of Winnipeg?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did the filmmaker in #1 direct The Heart Of The World?"
+        },
+        {
+          "label": "Q4",
+          "text": "In which city was the filmmaker in #1 born?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Clifford Ross",
+        "Q2": "no",
+        "Q3": "no",
+        "Q4": "Los Angeles, California"
+      },
+      "rewrite_prediction": "Toronto, Ontario",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "923058320bdd11eba7f7acde48001122::286",
+      "failure_type": "A_WRONG_ENTITY_CASCADE_explicit",
+      "gold": [
+        "Pyay"
+      ],
+      "original_question": "Where did Salin Mibaya's father die?",
+      "rewrite_question": "In which city did the monarch who was the father of Laygyun Mibaya, Minkhaung Medaw, Minkhaung of Prome, and Narapati of Prome, and who was also the father of Salin Mibaya, die?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Salin Mibaya's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Where did #1 die?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the monarch that is the father of Laygyun Mibaya, Minkhaung Medaw, Minkhaung of Prome, and Narapati of Prome?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is the monarch that is the father of Salin Mibaya?"
+        },
+        {
+          "label": "Q3",
+          "text": "Is the monarch in #1 the same as the monarch in #2?"
+        },
+        {
+          "label": "Q4",
+          "text": "In which city did the monarch in #3 die?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Bayin Htwe",
+        "Q2": "King Bayinnaung",
+        "Q3": "no",
+        "Q4": "Lisbon"
+      },
+      "rewrite_prediction": "Lisbon",
+      "verif_gate": "no",
+      "gold_in_rew_inter": false
+    },
+    {
+      "id": "1160bc660baf11ebab90acde48001122::290",
+      "failure_type": "B_CORRECT_INTER_WRONG_FINAL",
+      "gold": [
+        "Helvis of Ibelin"
+      ],
+      "original_question": "Who is Humphrey Of Montfort's paternal grandmother?",
+      "rewrite_question": "Who is the paternal grandmother of the person who is a child of Philip of Montfort, who also had children named Alix of Montfort and Helvis of Montfort, and whose cause of death was stabbing?",
+      "original_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is Humphrey Of Montfort's father?"
+        },
+        {
+          "label": "Q2",
+          "text": "Who is #1's mother?"
+        }
+      ],
+      "rewrite_decomp": [
+        {
+          "label": "Q1",
+          "text": "Who is the person who is a child of Philip of Montfort?"
+        },
+        {
+          "label": "Q2",
+          "text": "What is the name of the paternal grandmother of #1?"
+        },
+        {
+          "label": "Q3",
+          "text": "Did #1 have children named Alix of Montfort and Helvis of Montfort?"
+        },
+        {
+          "label": "Q4",
+          "text": "What was the cause of death of #1?"
+        },
+        {
+          "label": "Q5",
+          "text": "Was the cause of death of #1 stabbing?"
+        }
+      ],
+      "rewrite_intermediates": {
+        "Q1": "Helvis of Ibelin",
+        "Q2": "Maria Komnene",
+        "Q3": "no",
+        "Q4": "unknown",
+        "Q5": "no"
+      },
+      "rewrite_prediction": "Maria Komnene",
+      "verif_gate": "no",
+      "gold_in_rew_inter": true
+    }
+  ]
+}

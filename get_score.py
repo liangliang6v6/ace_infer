@@ -183,7 +183,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--file",
         type=str,
-        default="eval_datasets/test/2wiki/prompts_decompose_test_ace/test_e5-large-v2_k10_passage1.jsonl",
+        default="eval_datasets/test/2wiki_origin/prompts_decompose_test_multi/test_e5-large-v2_k10_passage0.jsonl",
     )
     parser.add_argument(
         "--output",

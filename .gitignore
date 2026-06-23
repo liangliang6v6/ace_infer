@@ -3,6 +3,7 @@ embeddings/
 eval_datasets/
 
 # OS files
+.claude/
 .DS_Store
 Thumbs.db
 __MACOSX/

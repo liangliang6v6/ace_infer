@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python data_analysis/order_experiment.py)",
+      "Bash(python3 data_analysis/order_experiment.py)",
+      "Bash(python3 -c ' *)",
+      "Bash(grep -E \"^\\(===|  [A-Z]|  [►A-Z0-9\\\\[]|$\\)\")"
+    ]
+  }
+}
